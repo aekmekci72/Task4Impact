@@ -34,7 +34,7 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 - Frontend install / dev: `cd frontend && npm install && npm run dev`
 - Backend install: `cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`
 - Backend dev: `cd backend && .venv/bin/python app.py` (serves on port 5001; macOS AirPlay takes port 5000). Needs `firebase-service-account.json` in `backend/`.
-- Seed demo profiles: `cd backend && .venv/bin/python seed_profiles.py` (add `--delete` to remove them). Seed ids start with `seed-` and can't sign in.
+- Seed demo data: `cd backend && .venv/bin/python seed.py` creates six fake members and a "Demo: Food Bank Tracker" project with a partly finished task graph (re-running resets it; add `--delete` to remove everything). Seed ids start with `seed-` and can't sign in.
 - Firestore access goes through `db` in `backend/firebase.py`; each collection gets its own `*_repository.py` (e.g. `profile_repository.py`).
 - Deploy (API): Render web service, root directory `backend`, build `pip install -r requirements.txt`, start `gunicorn app:app`. The service account key is a Render secret file; `FIREBASE_CREDENTIALS_PATH=/etc/secrets/firebase-service-account.json` points `firebase.py` at it.
 - Deploy (frontend): TBD (Firebase Hosting)

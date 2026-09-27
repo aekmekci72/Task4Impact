@@ -38,7 +38,7 @@ def put_tasks(project_id):
     if error:
         return jsonify({"error": error}), 400
     save_tasks(project_id, [task.model_dump() for task in graph.tasks])
-    _run_assignment(project)
+    run_assignment(project)
     return jsonify(get_tasks(project_id))
 
 
@@ -55,11 +55,11 @@ def complete(project_id, task_id):
     task = complete_task(project_id, task_id)
     if task is None:
         return jsonify({"error": "Task not found"}), 404
-    _run_assignment(project)
+    run_assignment(project)
     return jsonify(task)
 
 
-def _run_assignment(project):
+def run_assignment(project):
     """Assign idle project members to ready tasks and record the result on the tasks."""
     tasks = get_tasks(project["id"])
     open_task = {uid: t["id"] for t in tasks if t["status"] == "todo" for uid in t["assignee_ids"]}
