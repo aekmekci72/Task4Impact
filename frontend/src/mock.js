@@ -1,7 +1,7 @@
 // Stand-in for Firebase + the API so the UI can be built before the backend is ready.
 // Enabled with VITE_USE_MOCK=true. Everything lives in localStorage.
 
-import { SKILL_TAGS } from "./tags.js";
+import { SENIORITY_LEVELS, SKILL_TAGS } from "./tags.js";
 
 const USERS_KEY = "mock:users:v3";
 const PROJECTS_KEY = "mock:projects:v4";
@@ -105,6 +105,7 @@ export async function mockRequest(method, path, body) {
         (t) => !SKILL_TAGS.includes(t),
       );
       if (!body.name?.trim()) throw httpError(400, "Name is required");
+      if (!SENIORITY_LEVELS.includes(body.seniority)) throw httpError(400, "Seniority must be newbie or oldie");
       if (unknown.length) throw httpError(400, `Unknown tags: ${unknown.join(", ")}`);
       if (!body.strengths?.length) throw httpError(400, "Pick at least one strength");
 
@@ -112,6 +113,7 @@ export async function mockRequest(method, path, body) {
         created_at: new Date().toISOString(),
         ...me,
         name: body.name.trim(),
+        seniority: body.seniority,
         strengths: body.strengths,
         interests: body.interests ?? [],
         id: session.uid,

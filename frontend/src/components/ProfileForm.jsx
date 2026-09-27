@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { saveMe } from "../api.js";
 import TagPicker from "./TagPicker.jsx";
+import { SENIORITY_LEVELS, seniorityLabel } from "../tags.js";
 
 // Used for both first-time profile creation (R2) and editing your own profile (R3).
 export default function ProfileForm({ initial, defaultName, onSaved, onCancel }) {
   const isNew = !initial;
   const [name, setName] = useState(initial?.name ?? defaultName ?? "");
+  const [seniority, setSeniority] = useState(initial?.seniority ?? "");
   const [strengths, setStrengths] = useState(initial?.strengths ?? []);
   const [interests, setInterests] = useState(initial?.interests ?? []);
   const [saving, setSaving] = useState(false);
@@ -14,6 +16,7 @@ export default function ProfileForm({ initial, defaultName, onSaved, onCancel })
 
   const missing = [
     !name.trim() && "name",
+    !seniority && "newbie or oldie",
     strengths.length === 0 && "at least one strength",
   ].filter(Boolean);
 
@@ -24,7 +27,7 @@ export default function ProfileForm({ initial, defaultName, onSaved, onCancel })
     setSaving(true);
     setError("");
     try {
-      onSaved(await saveMe({ name: name.trim(), strengths, interests }));
+      onSaved(await saveMe({ name: name.trim(), seniority, strengths, interests }));
     } catch (err) {
       setError(err.message);
       setSaving(false);
@@ -46,6 +49,23 @@ export default function ProfileForm({ initial, defaultName, onSaved, onCancel })
         <span className="label">Name</span>
         <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
       </label>
+
+      <fieldset className="field">
+        <legend>Newbie or oldie?</legend>
+        <div className="tag-picker">
+          {SENIORITY_LEVELS.map((level) => (
+            <button
+              type="button"
+              key={level}
+              className={`chip chip-toggle${seniority === level ? " selected" : ""}`}
+              aria-pressed={seniority === level}
+              onClick={() => setSeniority(level)}
+            >
+              {seniorityLabel(level)}
+            </button>
+          ))}
+        </div>
+      </fieldset>
 
       <TagPicker
         label="Strengths"
