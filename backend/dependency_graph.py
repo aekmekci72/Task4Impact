@@ -20,18 +20,32 @@ Usage from Flask:
 Run directly for a quick sanity check without Flask:
 
     python dependency_graph.py
+
+Setup:
+    pip install google-genai pydantic
+    export GEMINI_API_KEY=...   # free key from aistudio.google.com/apikey
 """
 
 import os
 import json
+import time
+import random
+
 from typing import List, Optional
 
 from google import genai
+from google.genai import errors as genai_errors
 from pydantic import BaseModel, Field
 
 from skills import SKILL_TAGS
 
 MODEL_NAME = "gemini-3.8-flash"
+
+# Free-tier Gemini occasionally returns 503 "model overloaded" errors during
+# high-traffic periods. These are transient — retrying with backoff after a
+# short wait almost always succeeds on the next attempt.
+OVERLOAD_MAX_RETRIES = 4
+OVERLOAD_BASE_DELAY_SECONDS = 2
 
 
 # ---------------------------------------------------------------------------
@@ -197,6 +211,42 @@ def validate_graph(tasks: List[Task]) -> Optional[str]:
     return None
 
 
+def _is_overload_error(exc: Exception) -> bool:
+    """True for Gemini's transient 'model overloaded' / rate-limit style errors."""
+    if isinstance(exc, genai_errors.ServerError):
+        return True
+    if isinstance(exc, genai_errors.APIError):
+        status = getattr(exc, "code", None) or getattr(exc, "status_code", None)
+        if status in (429, 503):
+            return True
+    message = str(exc).lower()
+    return "overloaded" in message or "unavailable" in message or "503" in message
+
+
+def _call_gemini_with_retry(client: genai.Client, model: str, contents: str, config: dict):
+    """Wraps client.models.generate_content with backoff for transient overload errors.
+
+    Distinct from the outer generate_dependency_graph retry loop, which retries
+    on *invalid graph content* (bad JSON, cycles, etc). This layer retries on
+    *transport-level* failures (503/429) before content is even produced.
+    """
+    last_exc = None
+
+    for attempt in range(OVERLOAD_MAX_RETRIES + 1):
+        try:
+            return client.models.generate_content(
+                model=model, contents=contents, config=config
+            )
+        except Exception as e:
+            if not _is_overload_error(e) or attempt == OVERLOAD_MAX_RETRIES:
+                raise
+            last_exc = e
+            delay = OVERLOAD_BASE_DELAY_SECONDS * (2 ** attempt) + random.uniform(0, 1)
+            time.sleep(delay)
+
+    raise last_exc  # pragma: no cover — loop always returns or raises above
+
+
 # ---------------------------------------------------------------------------
 # Graph generation
 # ---------------------------------------------------------------------------
@@ -240,7 +290,8 @@ def generate_dependency_graph(
     last_error = None
 
     for attempt in range(max_retries + 1):
-        response = client.models.generate_content(
+        response = _call_gemini_with_retry(
+            client=client,
             model=MODEL_NAME,
             contents=(
                 prompt
