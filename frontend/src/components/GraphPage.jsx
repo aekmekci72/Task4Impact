@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { API_URL, getToken } from "../api.js";
+import DependencyGraphView from "./DependencyGraphView";
 
 // Paths below start with /api, so strip it from the shared API address.
 const API_BASE = API_URL.replace(/\/api$/, "");
@@ -219,7 +220,7 @@ export default function GraphPage() {
           {!graph ? (
             <p className="muted empty">Hit &ldquo;Generate graph&rdquo; to build the DAG.</p>
           ) : (
-            graph.tasks.map((task) => <TaskCard key={task.id} task={task} />)
+            <DependencyGraphView tasks={graph.tasks} />
           )}
         </section>
 
