@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { getToken } from "../api.js";
 
-// Adjust for your setup (env var, proxy config, deployed URL, etc).
 const API_BASE = "http://localhost:5001";
 
-// The signed-in user's Firebase ID token (refreshed automatically), or null if signed out.
 async function getAuthToken() {
   return getToken();
 }
@@ -25,8 +23,7 @@ async function apiPost(path) {
   return res.json();
 }
 
-// Mirrors graph_routes.py's DUMMY_USERS just for name lookups in the UI —
-// remove once /assign returns real user data instead of just ids.
+// Mirrors graph_routes.py's DUMMY_USERS just for name lookups in the UI.
 const DUMMY_USER_NAMES = {
   u1: "David",
   u2: "Tiffany",
@@ -36,10 +33,11 @@ const DUMMY_USER_NAMES = {
 
 const styles = {
   page: {
+    fontFamily: "'Inter', system-ui, sans-serif",
     maxWidth: 760,
     margin: "0 auto",
     padding: "2.5rem 1.5rem",
-    color: "var(--text-h)",
+    color: "#1c1c1c",
   },
   heading: {
     fontSize: "1.5rem",
@@ -47,7 +45,7 @@ const styles = {
     marginBottom: "0.25rem",
   },
   subheading: {
-    color: "var(--muted)",
+    color: "#666",
     marginBottom: "1.75rem",
     fontSize: "0.95rem",
   },
@@ -58,10 +56,10 @@ const styles = {
   },
   button: {
     padding: "0.6rem 1.1rem",
-    borderRadius: 10,
-    border: "1px solid var(--accent)",
-    background: "var(--accent)",
-    color: "var(--accent-contrast)",
+    borderRadius: 6,
+    border: "1px solid #1c1c1c",
+    background: "#1c1c1c",
+    color: "#fff",
     fontSize: "0.9rem",
     cursor: "pointer",
   },
@@ -70,8 +68,8 @@ const styles = {
     cursor: "not-allowed",
   },
   error: {
-    background: "color-mix(in srgb, var(--danger) 10%, transparent)",
-    color: "var(--danger)",
+    background: "#fdecea",
+    color: "#8a1f11",
     padding: "0.75rem 1rem",
     borderRadius: 6,
     marginBottom: "1.5rem",
@@ -86,9 +84,8 @@ const styles = {
     marginBottom: "0.75rem",
   },
   card: {
-    border: "1px solid var(--border)",
-    background: "var(--surface)",
-    borderRadius: 12,
+    border: "1px solid #e3e3e3",
+    borderRadius: 8,
     padding: "0.9rem 1rem",
     marginBottom: "0.6rem",
   },
@@ -98,7 +95,7 @@ const styles = {
   },
   taskDesc: {
     fontSize: "0.88rem",
-    color: "var(--text)",
+    color: "#555",
     marginBottom: "0.5rem",
   },
   metaRow: {
@@ -108,20 +105,20 @@ const styles = {
     fontSize: "0.78rem",
   },
   tag: {
-    background: "var(--interest-bg)",
-    borderRadius: 999,
+    background: "#f1f1f1",
+    borderRadius: 4,
     padding: "0.15rem 0.5rem",
-    color: "var(--interest-text)",
+    color: "#444",
   },
   assignmentRow: {
     display: "flex",
     justifyContent: "space-between",
     padding: "0.6rem 0",
-    borderBottom: "1px solid var(--border)",
+    borderBottom: "1px solid #eee",
     fontSize: "0.92rem",
   },
   empty: {
-    color: "var(--muted)",
+    color: "#888",
     fontSize: "0.9rem",
     fontStyle: "italic",
   },
@@ -159,84 +156,99 @@ export default function GraphPage() {
     }
   }
 
-  // Look up a task's title by id, falling back to the id itself if the
-  // graph hasn't been generated in this session.
   function taskLabel(taskId) {
     const task = graph?.tasks?.find((t) => t.id === taskId);
     return task ? task.title : taskId;
   }
 
+  const hasAssignments = assignments && Object.keys(assignments).length > 0;
+
   return (
-    <div style={styles.page}>
-      <h1 style={styles.heading}>Dependency graph & task assignment</h1>
-      <p style={styles.subheading}>
-        Both buttons currently hit hardcoded dummy data on the backend — this
-        page just exercises the two endpoints.
-      </p>
+    <div className="graph-page">
+      <header className="graph-page-header">
+        <div>
+          <h1>Dependency Graph &amp; Task Assignment</h1>
+          <p className="muted">
+            Generate a task DAG from your project description, then auto-assign tasks to your team.
+          </p>
+        </div>
+        <div className="graph-actions">
+          <button
+            className="btn btn-ghost"
+            onClick={handleGenerate}
+            disabled={loading !== null}
+            id="btn-generate-graph"
+          >
+            {loading === "generate" ? (
+              <><span className="spinner" /> Generating…</>
+            ) : (
+              "Generate graph"
+            )}
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={handleAssign}
+            disabled={loading !== null}
+            id="btn-assign-tasks"
+          >
+            {loading === "assign" ? (
+              <><span className="spinner" /> Assigning…</>
+            ) : (
+              "Assign tasks"
+            )}
+          </button>
+        </div>
+      </header>
 
-      <div style={styles.buttonRow}>
-        <button
-          style={{
-            ...styles.button,
-            ...(loading === "generate" ? styles.buttonDisabled : {}),
-          }}
-          onClick={handleGenerate}
-          disabled={loading !== null}
-        >
-          {loading === "generate" ? "Generating…" : "Generate graph"}
-        </button>
-        <button
-          style={{
-            ...styles.button,
-            ...(loading === "assign" ? styles.buttonDisabled : {}),
-          }}
-          onClick={handleAssign}
-          disabled={loading !== null}
-        >
-          {loading === "assign" ? "Assigning…" : "Assign tasks"}
-        </button>
-      </div>
+      {error && (
+        <p className="error card" role="alert" style={{ marginBottom: "1.5rem" }}>
+          {error}
+        </p>
+      )}
 
-      {error && <div style={styles.error}>{error}</div>}
+      <div className="graph-columns">
+        {/* ── Graph column ── */}
+        <section className="graph-col">
+          <h2 className="graph-col-title">
+            Task Graph
+            {graph?.tasks && (
+              <span className="graph-count">{graph.tasks.length} tasks</span>
+            )}
+          </h2>
+          {!graph ? (
+            <p className="muted empty">Hit &ldquo;Generate graph&rdquo; to build the DAG.</p>
+          ) : (
+            graph.tasks.map((task) => <TaskCard key={task.id} task={task} />)
+          )}
+        </section>
 
-      <div style={styles.section}>
-        <div style={styles.sectionTitle}>Graph</div>
-        {!graph && <div style={styles.empty}>Not generated yet.</div>}
-        {graph?.tasks?.map((task) => (
-          <div key={task.id} style={styles.card}>
-            <div style={styles.taskTitle}>{task.title}</div>
-            <div style={styles.taskDesc}>{task.description}</div>
-            <div style={styles.metaRow}>
-              <span style={styles.tag}>{task.estimated_difficulty}</span>
-              <span style={styles.tag}>capacity {task.capacity}</span>
-              {task.suggested_skills?.map((s) => (
-                <span key={s} style={styles.tag}>
-                  {s}
-                </span>
+        {/* ── Assignments column ── */}
+        <section className="graph-col">
+          <h2 className="graph-col-title">
+            Assignments
+            {hasAssignments && (
+              <span className="graph-count">{Object.keys(assignments).length} assigned</span>
+            )}
+          </h2>
+          {!assignments ? (
+            <p className="muted empty">Hit &ldquo;Assign tasks&rdquo; to run the optimizer.</p>
+          ) : !hasAssignments ? (
+            <p className="muted empty">
+              No one assigned — nothing unlocked yet, or no idle team members.
+            </p>
+          ) : (
+            <div className="card graph-assignments-card">
+              {Object.entries(assignments).map(([userId, taskId]) => (
+                <AssignmentRow
+                  key={userId}
+                  userId={userId}
+                  taskId={taskId}
+                  taskLabel={taskLabel(taskId)}
+                />
               ))}
-              {task.dependencies?.length > 0 && (
-                <span style={styles.tag}>
-                  after: {task.dependencies.join(", ")}
-                </span>
-              )}
             </div>
-          </div>
-        ))}
-      </div>
-
-      <div style={styles.section}>
-        <div style={styles.sectionTitle}>Assignments</div>
-        {!assignments && <div style={styles.empty}>Not run yet.</div>}
-        {assignments && Object.keys(assignments).length === 0 && (
-          <div style={styles.empty}>No one was assigned (nothing unlocked, or no idle users).</div>
-        )}
-        {assignments &&
-          Object.entries(assignments).map(([userId, taskId]) => (
-            <div key={userId} style={styles.assignmentRow}>
-              <span>{DUMMY_USER_NAMES[userId] || userId}</span>
-              <span>{taskLabel(taskId)}</span>
-            </div>
-          ))}
+          )}
+        </section>
       </div>
     </div>
   );

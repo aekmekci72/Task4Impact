@@ -33,7 +33,6 @@ def get_tasks(project_id):
     return [_to_task(doc) for doc in _tasks(project_id).stream()]
 
 
-
 def get_task(project_id, task_id):
     doc = _tasks(project_id).document(task_id).get()
     return _to_task(doc) if doc.exists else None
@@ -59,7 +58,6 @@ def set_assignments(project_id, assignments):
     for user_id, task_id in assignments.items():
         batch.update(_tasks(project_id).document(task_id), {"assignee_ids": firestore.ArrayUnion([user_id])})
     batch.commit()
-
 
 
 def set_assignees(project_id, task_id, user_ids):

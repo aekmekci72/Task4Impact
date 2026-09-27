@@ -216,5 +216,17 @@ export async function mockRequest(method, path, body) {
     }
   }
 
+  const completeMatch = path.match(/^\/projects\/([^/]+)\/tasks\/([^/]+)\/complete$/);
+  if (completeMatch && method === "POST") {
+    const project = projects.find((p) => p.id === completeMatch[1]);
+    const task = project?.tasks.find((t) => t.id === completeMatch[2]);
+    if (!task) throw httpError(404, "Task not found");
+    // Unlike the real API, the mock doesn't assign newly unblocked tasks.
+    task.status = "done";
+    task.completed_at = new Date().toISOString();
+    save(PROJECTS_KEY, projects);
+    return withProjectId(task, project);
+  }
+
   throw httpError(404, `Mock has no route for ${method} ${path}`);
 }
