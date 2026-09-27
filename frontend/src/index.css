@@ -28,38 +28,12 @@
   --display: "Space Grotesk", var(--sans);
 
   font: 16px/1.5 var(--sans);
-  color-scheme: light dark;
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #b4bfcc;
-    --text-h: #eef2f6;
-    --muted: #8c98a6;
-    --bg: #11161d;
-    --surface: #19202a;
-    --border: #2a3441;
-    --input-border: #3a4656;
-    --accent: #6d9dc5;
-    --accent-strong: #9dbfdc;
-    --accent-contrast: #0e1620;
-    --accent-bg: rgba(109, 157, 197, 0.14);
-    --accent-soft: #22354b;
-    --accent-border: rgba(109, 157, 197, 0.5);
-    --interest: #80ded9;
-    --interest-text: #80ded9;
-    --interest-light: #129ea5;
-    --interest-soft: #173a3c;
-    --interest-bg: rgba(128, 222, 217, 0.12);
-    --danger: #ff8a80;
-    --warning: #f5a445;
-    --shadow: rgba(0, 0, 0, 0.3) 0 1px 2px, rgba(0, 0, 0, 0.3) 0 4px 12px;
-  }
 }
 
 body {
