@@ -33,7 +33,7 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 <!-- Fill in the TBDs as setup lands -->
 - Frontend install / dev: `cd frontend && npm install && npm run dev`
 - Backend install: `cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`
-- Backend dev: `cd backend && .venv/bin/python app.py` (serves on port 5000). Needs `firebase-service-account.json` in `backend/`.
+- Backend dev: `cd backend && .venv/bin/python app.py` (serves on port 5001; macOS AirPlay takes port 5000). Needs `firebase-service-account.json` in `backend/`.
 - Seed demo profiles: `cd backend && .venv/bin/python seed_profiles.py` (add `--delete` to remove them). Seed ids start with `seed-` and can't sign in.
 - Firestore access goes through `db` in `backend/firebase.py`; each collection gets its own `*_repository.py` (e.g. `profile_repository.py`).
 - Deploy (API): Render web service, root directory `backend`, build `pip install -r requirements.txt`, start `gunicorn app:app`. The service account key is a Render secret file; `FIREBASE_CREDENTIALS_PATH=/etc/secrets/firebase-service-account.json` points `firebase.py` at it.
@@ -51,7 +51,7 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 
 ## Roles and permissions
 
-PM/TL is per-project, not an account type: whoever creates a project is its PM/TL (`projects.pm_user_id`). The creator is also added to `member_ids`, so they get tasks too, and can remove themselves. Everyone else on it is a dev.
+PM/TL is per-project, not an account type: whoever creates a project is its PM/TL (`projects.pm_user_id`). The creator is also added as a project member, so they get tasks too, and can remove themselves. Everyone else on it is a dev.
 
 - Any signed-in user: view directory, create/edit own profile, create projects, edit project details, add/remove project members, view and check off OWN tasks.
 - PM/TL of a project: generate/edit/save tasks, view all tasks on the project, check off any task on the project.
@@ -64,7 +64,8 @@ Firestore has no schema, so the API is the only thing enforcing these shapes. Va
 | Collection | Fields | Notes |
 | --- | --- | --- |
 | users | id (Firebase uid), name, email, seniority (`newbie` / `oldie`), strengths, interests | strengths/interests = arrays of skill tags; seniority is used in assignment scoring (`backend/task_assignment.py`) |
-| projects | id (auto), name, description, pm_user_id → users id, member_ids | member_ids = array of uids on the project, including the PM/TL |
+| projects | id (auto), name, description, pm_user_id → users id, created_at | |
+| project_members | project_id, user_id | one doc per membership, id `{project_id}:{user_id}`; the PM/TL is a member too |
 | projects/{id}/tasks | id (the slug Gemini returns, e.g. `setup-firebase`), title, description, dependencies, suggested_skills, estimated_difficulty (`easy`/`medium`/`hard`), capacity (1 or 2), status (`todo`/`done`), assignee_ids, completed_at (timestamp or null) | subcollection under its project; dependencies = array of sibling task ids; suggested_skills = array of skill tags; assignee_ids = array of uids |
 
 Why this shape (full reasoning in the team proposal doc):

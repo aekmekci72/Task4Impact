@@ -8,3 +8,6 @@ backend/firebase-service-account.json
 # Python
 __pycache__/
 .venv/
+
+# macOS
+.DS_Store
