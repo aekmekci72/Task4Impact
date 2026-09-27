@@ -30,6 +30,12 @@ def get_tasks(project_id):
     return [_to_task(doc) for doc in _tasks(project_id).stream()]
 
 
+
+def get_task(project_id, task_id):
+    doc = _tasks(project_id).document(task_id).get()
+    return _to_task(doc) if doc.exists else None
+
+
 def tasks_for_user(uid):
     query = db.collection_group("tasks").where(filter=FieldFilter("assignee_ids", "array_contains", uid))
     return [_to_task(doc) for doc in query.stream()]
@@ -50,6 +56,13 @@ def set_assignments(project_id, assignments):
     for user_id, task_id in assignments.items():
         batch.update(_tasks(project_id).document(task_id), {"assignee_ids": firestore.ArrayUnion([user_id])})
     batch.commit()
+
+
+
+def set_assignees(project_id, task_id, user_ids):
+    """Replace a task's assignees. Returns the updated task."""
+    _tasks(project_id).document(task_id).update({"assignee_ids": user_ids})
+    return get_task(project_id, task_id)
 
 
 def _tasks(project_id):

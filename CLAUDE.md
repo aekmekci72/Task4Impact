@@ -94,6 +94,7 @@ All routes are served under the `/api` prefix (e.g. `/api/me`), matching the exi
 | POST | /projects/:id/generate | signed in | return LLM draft; saves NOTHING |
 | PUT | /projects/:id/tasks | signed in | save whole graph, validate, run assignment |
 | GET | /me/tasks | signed in | tasks assigned to me |
+| PUT | /projects/:id/tasks/:taskId/assignees | signed in (P1) | manually reassign a task |
 | POST | /projects/:id/tasks/:taskId/complete | signed in | mark done, run assignment (under the project because task ids are only unique per project) |
 
 Return JSON errors with a clear message and correct status codes (400 validation, 401 no/invalid token, 403 not allowed, 404 not found).
@@ -146,6 +147,8 @@ A **task** (as the API returns it) is:
 - `POST /api/projects/:id/generate`: no body. 200 with a draft `{"tasks": [...]}`, where each task has only `id, title, description, dependencies, suggested_skills, estimated_difficulty, capacity`. Saves nothing. 400 if the project has no description; 502 if Gemini fails (the message says why).
 - `PUT /api/projects/:id/tasks`: body `{"tasks": [...]}` in the draft shape (edited or not). Validates, **replaces the project's whole graph** (every task goes back to `todo` and unassigned, so progress is lost), runs assignment, and returns 200 with the saved tasks. 400 with a message for a cycle, unknown dependency, bad tag, duplicate id, bad difficulty, missing field, or empty list.
 - `GET /api/me/tasks`: 200 with every task I'm assigned to across all projects, including finished ones. Filter by `status` for open vs. completed.
+- `PUT /api/projects/:id/tasks/:taskId/assignees`: body `{"assignee_ids": [uid, ...]}` replaces the task's assignees (`[]` unassigns). 200 with the updated task. 400 if the task is done, still waiting on dependencies, someone isn't a project member, the list exceeds the task's capacity, or someone already has another open task on this project. Does not re-run assignment.
+- `PUT /api/users/:id`: same body and validation as `PUT /api/me`, for editing another member's profile. Keeps that member's own email. 200 with the profile; 404 if they have no profile (it never creates one).
 - `POST /api/projects/:id/tasks/:taskId/complete`: no body. Marks it done, then assigns whatever it unblocked. 200 with the completed task; 404 if the project or task is missing. Refetch the project to see the new assignments.
 
 ## Task generation (LLM)

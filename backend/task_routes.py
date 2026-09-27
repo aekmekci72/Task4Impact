@@ -1,10 +1,18 @@
 from flask import Blueprint, g, jsonify, request
 from pydantic import ValidationError
 
-from dependency_graph import DependencyGraph, generate_dependency_graph, validate_graph
+from dependency_graph import DependencyGraph, Task, generate_dependency_graph, validate_graph
 from project_repository import get_project
-from task_assignment import assign_tasks
-from task_repository import complete_task, get_tasks, save_tasks, set_assignments, tasks_for_user
+from task_assignment import assign_tasks, task_capacity
+from task_repository import (
+    complete_task,
+    get_task,
+    get_tasks,
+    save_tasks,
+    set_assignees,
+    set_assignments,
+    tasks_for_user,
+)
 
 bp = Blueprint("tasks", __name__, url_prefix="/api")
 
@@ -57,6 +65,41 @@ def complete(project_id, task_id):
         return jsonify({"error": "Task not found"}), 404
     run_assignment(project)
     return jsonify(task)
+
+
+
+@bp.put("/projects/<project_id>/tasks/<task_id>/assignees")
+def put_assignees(project_id, task_id):
+    project = get_project(project_id)
+    if project is None:
+        return jsonify({"error": "Project not found"}), 404
+    task = get_task(project_id, task_id)
+    if task is None:
+        return jsonify({"error": "Task not found"}), 404
+    if task["status"] == "done":
+        return jsonify({"error": "This task is already done"}), 400
+    data = request.get_json(silent=True)
+    user_ids = data.get("assignee_ids") if isinstance(data, dict) else None
+    if not isinstance(user_ids, list) or not all(isinstance(u, str) for u in user_ids):
+        return jsonify({"error": "assignee_ids must be a list of user ids"}), 400
+    user_ids = list(dict.fromkeys(user_ids))
+    outsiders = [u for u in user_ids if u not in {m["id"] for m in project["members"]}]
+    if outsiders:
+        return jsonify({"error": f"Not on this project: {outsiders}"}), 400
+    capacity = task_capacity(Task(**task))
+    if len(user_ids) > capacity:
+        return jsonify({"error": f"This task has room for {capacity} at most"}), 400
+    tasks = get_tasks(project_id)
+    done = {t["id"] for t in tasks if t["status"] == "done"}
+    waiting_on = [dep for dep in task["dependencies"] if dep not in done]
+    if user_ids and waiting_on:
+        return jsonify({"error": f"This task is still waiting on: {waiting_on}"}), 400
+    busy = sorted({u for t in tasks
+                   if t["status"] == "todo" and t["id"] != task_id
+                   for u in t["assignee_ids"] if u in user_ids})
+    if busy:
+        return jsonify({"error": f"Already working on another task: {busy}"}), 400
+    return jsonify(set_assignees(project_id, task_id, user_ids))
 
 
 def run_assignment(project):

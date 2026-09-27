@@ -127,7 +127,7 @@ def get_available_tasks(
     ]
 
 
-def _task_capacity(task: Task) -> int:
+def task_capacity(task: Task) -> int:
     """1 by default, 2 for hard tasks, unless the graph set capacity explicitly."""
     if task.capacity:
         return max(1, task.capacity)
@@ -228,13 +228,13 @@ def assign_tasks(
 
     # Each task is filled up to (and never beyond) its capacity.
     for t in available:
-        model.Add(sum(x[(u.id, t.id)] for u in idle_users) <= _task_capacity(t))
+        model.Add(sum(x[(u.id, t.id)] for u in idle_users) <= task_capacity(t))
 
     # Pairing bonus variables: only created for user pairs with a nonzero
     # bonus, on tasks with room for two — keeps the model small.
     pair_terms = []
     for t in available:
-        if _task_capacity(t) < 2:
+        if task_capacity(t) < 2:
             continue
         for i, u1 in enumerate(idle_users):
             for u2 in idle_users[i + 1:]:

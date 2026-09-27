@@ -35,3 +35,16 @@ def put_me():
 def users():
     member_projects = projects_by_member()
     return jsonify([{**p, "projects": member_projects.get(p["id"], [])} for p in list_profiles()])
+
+
+@bp.put("/users/<user_id>")
+def put_user(user_id):
+    existing = get_profile(user_id)
+    if existing is None:
+        return jsonify({"error": "User not found"}), 404
+    try:
+        fields = validate_profile(request.get_json(silent=True))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    profile, _ = save_profile(user_id, existing["email"], fields)
+    return jsonify({**profile, "projects": projects_by_member().get(user_id, [])})
