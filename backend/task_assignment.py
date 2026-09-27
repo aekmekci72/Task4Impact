@@ -75,7 +75,7 @@ ASSIGNMENT_BONUS = 100.0
 # CP-SAT wants integer coefficients; scale floats up before rounding.
 SCORE_SCALE = 100
 
-SENIORITY_RANK = {"junior": 0, "mid": 1, "senior": 2}
+SENIORITY_RANK = {"newbie": 0, "oldie": 2}  # profile values from backend/profiles.py
 DIFFICULTY_RANK = {"easy": 0, "medium": 1, "hard": 2}
 
 
@@ -84,7 +84,7 @@ class UserProfile(BaseModel):
     name: str
     strengths: List[str] = []
     interests: List[str] = []
-    seniority: str = "mid"
+    seniority: Optional[str] = None  # unknown seniority scores as neutral (rank 1)
     current_task: Optional[str] = None
 
 # ---------------------------------------------------------------------------
@@ -165,7 +165,7 @@ def _pair_bonus(u1: UserProfile, u2: UserProfile) -> float:
     Swap this out for a lookup into an explicit compatibility list if/when
     you want people to set that themselves.
     """
-    if {u1.seniority, u2.seniority} == {"senior", "junior"}:
+    if {u1.seniority, u2.seniority} == {"oldie", "newbie"}:
         return SENIOR_JUNIOR_PAIR_BONUS
     return 0.0
 
@@ -298,13 +298,13 @@ if __name__ == "__main__":
 
     dummy_users = [
         {"id": "u1", "name": "David", "strengths": ["backend", "firebase", "auth"],
-         "interests": ["backend"], "seniority": "senior", "current_task": None},
+         "interests": ["backend"], "seniority": "oldie", "current_task": None},
         {"id": "u2", "name": "Tiffany", "strengths": ["ui-design", "frontend", "react"],
-         "interests": ["ui-design"], "seniority": "mid", "current_task": None},
+         "interests": ["ui-design"], "seniority": "newbie", "current_task": None},
         {"id": "u3", "name": "Jonah", "strengths": ["database"],
-         "interests": ["ui-design"], "seniority": "junior", "current_task": None},
+         "interests": ["ui-design"], "seniority": "newbie", "current_task": None},
         {"id": "u4", "name": "Anna", "strengths": ["ui-design"],
-         "interests": ["ui-design"], "seniority": "senior", "current_task": None},
+         "interests": ["ui-design"], "seniority": "oldie", "current_task": None},
     ]
 
     completed_task_ids = []

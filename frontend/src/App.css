@@ -76,6 +76,17 @@ select:focus-visible {
 .btn-ghost:hover:not(:disabled) {
   background: var(--accent-bg);
 }
+.btn-active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+/* React Router <Link> used as a button */
+a.btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
 .btn-lg {
   padding: 12px 22px;
   font-size: 17px;

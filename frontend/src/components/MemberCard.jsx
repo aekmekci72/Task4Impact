@@ -1,4 +1,4 @@
-import { tagLabel } from "../tags.js";
+import { seniorityLabel, tagLabel } from "../tags.js";
 
 function initials(name) {
   return name
@@ -41,6 +41,7 @@ export default function MemberCard({ member, isMe, isPm }) {
             {isMe && <span className="you">You</span>}
           </h3>
           {isPm && <span className="role">PM/TL</span>}
+          {member.seniority && <span className="muted">{seniorityLabel(member.seniority)}</span>}
         </div>
       </header>
       <TagList tags={member.strengths} variant="chip-strength" />

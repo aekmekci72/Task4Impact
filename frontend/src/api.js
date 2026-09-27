@@ -1,9 +1,9 @@
 // Auth + API client. Every request carries the Firebase ID token (PRD R1).
 //
 // Endpoints and fields follow the API and data model in CLAUDE.md (all under /api):
-//   GET  /me           -> own profile { id, name, email, strengths, interests, created_at },
+//   GET  /me           -> own profile { id, name, email, seniority, strengths, interests, projects },
 //                         or 404 if the user has not created one yet
-//   PUT  /me           -> body { name, strengths, interests }; returns the saved profile
+//   PUT  /me           -> body { name, seniority, strengths, interests }; returns the saved profile
 //   GET  /users        -> [profile, ...]
 //   GET  /me/tasks     -> tasks assigned to me:
 //                         [{ id, project_id, title, description, suggested_skills,

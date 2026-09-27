@@ -36,3 +36,7 @@ const TAG_LABELS = {
 };
 
 export const tagLabel = (tag) => TAG_LABELS[tag] ?? tag;
+
+// Profile seniority values. Must match SENIORITY_LEVELS in backend/profiles.py.
+export const SENIORITY_LEVELS = ["newbie", "oldie"];
+export const seniorityLabel = (level) => level[0].toUpperCase() + level.slice(1);
