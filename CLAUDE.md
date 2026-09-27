@@ -120,6 +120,34 @@ A **profile** is:
 - `GET /api/users`: 200 with an array of profiles sorted by name. Each also has `"projects": [{"id", "name"}]` for the directory cards; it's `[]` until projects exist.
 - `GET /api/skills`: 200 with the `SKILL_TAGS` array. The frontend reads tag options from here instead of hardcoding them.
 
+### Project and task endpoint shapes
+
+A **task** (as the API returns it) is:
+
+```json
+{
+  "id": "setup-repo",
+  "project_id": "seed-demo-project",
+  "title": "Set up repo and CI",
+  "description": "Set up repo and CI.",
+  "dependencies": [],
+  "suggested_skills": ["backend", "devops"],
+  "estimated_difficulty": "easy",
+  "capacity": null,
+  "status": "done",
+  "assignee_ids": ["seed-sam"],
+  "completed_at": "2026-09-27T05:42:52.452388+00:00"
+}
+```
+
+`status` is `todo` or `done`. A `todo` task with `assignee_ids` is in progress; one without is waiting (either blocked by dependencies or nobody is free). `assignee_ids` stays set after a task is done. `completed_at` is an ISO string or null. `capacity` null means the default (1, or 2 for hard tasks).
+
+- `GET /api/projects/:id`: 200 with `{id, name, description, pm_user_id, created_at, members: [profile], tasks: [task]}`; 404 if missing. `GET /api/projects` returns the same objects without `tasks`.
+- `POST /api/projects/:id/generate`: no body. 200 with a draft `{"tasks": [...]}`, where each task has only `id, title, description, dependencies, suggested_skills, estimated_difficulty, capacity`. Saves nothing. 400 if the project has no description; 502 if Gemini fails (the message says why).
+- `PUT /api/projects/:id/tasks`: body `{"tasks": [...]}` in the draft shape (edited or not). Validates, **replaces the project's whole graph** (every task goes back to `todo` and unassigned, so progress is lost), runs assignment, and returns 200 with the saved tasks. 400 with a message for a cycle, unknown dependency, bad tag, duplicate id, bad difficulty, missing field, or empty list.
+- `GET /api/me/tasks`: 200 with every task I'm assigned to across all projects, including finished ones. Filter by `status` for open vs. completed.
+- `POST /api/projects/:id/tasks/:taskId/complete`: no body. Marks it done, then assigns whatever it unblocked. 200 with the completed task; 404 if the project or task is missing. Refetch the project to see the new assignments.
+
 ## Task generation (LLM)
 
 - Implemented in `backend/dependency_graph.py` (`generate_dependency_graph`), using Gemini structured output. The `Task` model there is the source of truth for task fields. A draft looks like:
