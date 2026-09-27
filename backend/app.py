@@ -2,27 +2,20 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 
 from auth import verify_request
+from graph_routes import bp as graph_routes
 from profile_routes import bp as profile_routes
 from project_routes import bp as project_routes
-from graph_routes import bp as graph_bp
-
 
 app = Flask(__name__)
 CORS(app)
 app.before_request(verify_request)
 app.register_blueprint(profile_routes)
+app.register_blueprint(project_routes)
+app.register_blueprint(graph_routes)
 
-@app.get("/api/me")
-def get_me():
-    return jsonify({
-        "id": "u1",
-        "name": "David",
-        "email": "david@example.com",
-        "strengths": ["backend", "firebase", "auth"],
-        "interests": ["backend"],
-        "seniority": "senior"
-    })
-
+@app.get("/api/hello")
+def hello():
+    return jsonify({"message": "Hello from Flask!"})
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)
