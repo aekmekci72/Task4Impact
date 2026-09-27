@@ -36,11 +36,10 @@ const DUMMY_USER_NAMES = {
 
 const styles = {
   page: {
-    fontFamily: "'Inter', system-ui, sans-serif",
     maxWidth: 760,
     margin: "0 auto",
     padding: "2.5rem 1.5rem",
-    color: "#1c1c1c",
+    color: "var(--text-h)",
   },
   heading: {
     fontSize: "1.5rem",
@@ -48,7 +47,7 @@ const styles = {
     marginBottom: "0.25rem",
   },
   subheading: {
-    color: "#666",
+    color: "var(--muted)",
     marginBottom: "1.75rem",
     fontSize: "0.95rem",
   },
@@ -59,10 +58,10 @@ const styles = {
   },
   button: {
     padding: "0.6rem 1.1rem",
-    borderRadius: 6,
-    border: "1px solid #1c1c1c",
-    background: "#1c1c1c",
-    color: "#fff",
+    borderRadius: 10,
+    border: "1px solid var(--accent)",
+    background: "var(--accent)",
+    color: "var(--accent-contrast)",
     fontSize: "0.9rem",
     cursor: "pointer",
   },
@@ -71,8 +70,8 @@ const styles = {
     cursor: "not-allowed",
   },
   error: {
-    background: "#fdecea",
-    color: "#8a1f11",
+    background: "color-mix(in srgb, var(--danger) 10%, transparent)",
+    color: "var(--danger)",
     padding: "0.75rem 1rem",
     borderRadius: 6,
     marginBottom: "1.5rem",
@@ -87,8 +86,9 @@ const styles = {
     marginBottom: "0.75rem",
   },
   card: {
-    border: "1px solid #e3e3e3",
-    borderRadius: 8,
+    border: "1px solid var(--border)",
+    background: "var(--surface)",
+    borderRadius: 12,
     padding: "0.9rem 1rem",
     marginBottom: "0.6rem",
   },
@@ -98,7 +98,7 @@ const styles = {
   },
   taskDesc: {
     fontSize: "0.88rem",
-    color: "#555",
+    color: "var(--text)",
     marginBottom: "0.5rem",
   },
   metaRow: {
@@ -108,20 +108,20 @@ const styles = {
     fontSize: "0.78rem",
   },
   tag: {
-    background: "#f1f1f1",
-    borderRadius: 4,
+    background: "var(--interest-bg)",
+    borderRadius: 999,
     padding: "0.15rem 0.5rem",
-    color: "#444",
+    color: "var(--interest-text)",
   },
   assignmentRow: {
     display: "flex",
     justifyContent: "space-between",
     padding: "0.6rem 0",
-    borderBottom: "1px solid #eee",
+    borderBottom: "1px solid var(--border)",
     fontSize: "0.92rem",
   },
   empty: {
-    color: "#888",
+    color: "var(--muted)",
     fontSize: "0.9rem",
     fontStyle: "italic",
   },

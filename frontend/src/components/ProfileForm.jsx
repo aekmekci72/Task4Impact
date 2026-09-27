@@ -78,6 +78,7 @@ export default function ProfileForm({ initial, defaultName, onSaved, onCancel })
         hint="What you'd like to get better at."
         value={interests}
         onChange={setInterests}
+        variant="interest"
       />
 
       {attempted && missing.length > 0 ? (
