@@ -1,22 +1,23 @@
 """Writes demo data to Firestore: fake member profiles and a demo project with a task graph.
 
-    .venv/bin/python seed.py            # create the demo data, or reset it to the starting state
-    .venv/bin/python seed.py --delete   # remove all of it
+    .venv/bin/python seed.py                            # create the demo data, or reset it
+    .venv/bin/python seed.py --give-task-to you@x.com   # also give that member a task to check off
+    .venv/bin/python seed.py --delete                   # remove all of it
 
 Seed users can't sign in; their ids aren't real Firebase accounts. Re-running is safe:
 it overwrites the same documents instead of adding duplicates.
 """
-import sys
+import argparse
 from datetime import datetime, timezone
 
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 from dependency_graph import Task, validate_graph
 from firebase import db
-from profile_repository import save_profile
+from profile_repository import list_profiles, save_profile
 from profiles import validate_profile
 from project_repository import add_project_member, get_project
-from task_repository import complete_task, save_tasks
+from task_repository import complete_task, get_tasks, save_tasks, set_assignees
 from task_routes import run_assignment
 
 SEED_PROFILES = {
@@ -84,6 +85,8 @@ DEMO_TASKS = [
 ]
 # Finished before the demo starts, so the project looks partway through.
 DEMO_DONE = ["setup-repo", "design-wireframes"]
+# The presenter's task. Finishing it unblocks volunteer-signup-ui, so the demo shows auto-assignment.
+PRESENTER_TASK = "firebase-auth"
 
 
 def seed():
@@ -110,6 +113,21 @@ def seed_demo_project():
     print(f"seeded {DEMO_PROJECT_ID} with {len(DEMO_TASKS)} tasks")
 
 
+def give_task_to(email):
+    """Make the member with this email the one working on PRESENTER_TASK in the demo project."""
+    matches = [p for p in list_profiles() if p["email"].lower() == email.lower()]
+    if not matches:
+        raise SystemExit(f"No profile with email {email}. Sign up on the site and create a profile first.")
+    uid = matches[0]["id"]
+    add_project_member(DEMO_PROJECT_ID, uid)
+    for task in get_tasks(DEMO_PROJECT_ID):
+        if task["status"] == "todo" and uid in task["assignee_ids"] and task["id"] != PRESENTER_TASK:
+            set_assignees(DEMO_PROJECT_ID, task["id"], [u for u in task["assignee_ids"] if u != uid])
+    set_assignees(DEMO_PROJECT_ID, PRESENTER_TASK, [uid])
+    run_assignment(get_project(DEMO_PROJECT_ID))
+    print(f"{email} is now working on {PRESENTER_TASK}")
+
+
 def delete():
     project = db.collection("projects").document(DEMO_PROJECT_ID)
     for doc in project.collection("tasks").stream():
@@ -125,4 +143,13 @@ def delete():
 
 
 if __name__ == "__main__":
-    delete() if "--delete" in sys.argv else seed()
+    parser = argparse.ArgumentParser(description="Seed or remove demo data.")
+    parser.add_argument("--delete", action="store_true", help="remove all demo data")
+    parser.add_argument("--give-task-to", metavar="EMAIL", help="after seeding, give this member the presenter task")
+    args = parser.parse_args()
+    if args.delete:
+        delete()
+    else:
+        seed()
+        if args.give_task_to:
+            give_task_to(args.give_task_to)
