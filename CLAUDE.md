@@ -32,8 +32,9 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 
 <!-- Fill in the TBDs as setup lands -->
 - Frontend install / dev: `cd frontend && npm install && npm run dev`
-- Backend dev: `cd backend && python app.py` (serves on port 5000). Needs `firebase-service-account.json` in `backend/`.
-- Backend dependencies: TBD (no `requirements.txt` yet; currently `flask`, `flask-cors`, `firebase-admin`, `google-genai`, `pydantic`)
+- Backend install: `cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`
+- Backend dev: `cd backend && .venv/bin/python app.py` (serves on port 5000). Needs `firebase-service-account.json` in `backend/`.
+- Firestore access goes through `db` in `backend/firebase.py`; each collection gets its own `*_repository.py` (e.g. `profile_repository.py`).
 - Deploy: TBD
 
 ## Secrets
@@ -44,7 +45,7 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 
 - Frontend signs in with the Firebase JS SDK and sends the Firebase ID token as `Authorization: Bearer <token>` on every API call.
 - The backend verifies the token with `firebase_admin.auth.verify_id_token` in one shared decorator (or `before_request` hook) that puts the Firebase uid on Flask's `g` as `g.user_id`.
-- Every route except health checks requires a valid token.
+- Every route except health checks and `/api/skills` requires a valid token.
 
 ## Roles and permissions
 
@@ -60,7 +61,7 @@ Firestore has no schema, so the API is the only thing enforcing these shapes. Va
 
 | Collection | Fields | Notes |
 | --- | --- | --- |
-| users | id (Firebase uid), name, email, strengths, interests, created_at | strengths/interests = arrays of skill tags |
+| users | id (Firebase uid), name, email, seniority (`newbie` / `oldie`), strengths, interests | strengths/interests = arrays of skill tags; seniority is display only, never used in assignment |
 | projects | id, name, description, pm_user_id → users id, created_at | |
 | project_members | project_id, user_id | one doc per membership |
 | tasks | id, project_id, title, description, tags, difficulty (`easy`/`medium`/`hard`), status (`draft`/`todo`/`done`), assignee_id (nullable), completed_at | tags = array |
@@ -78,6 +79,7 @@ All routes are served under the `/api` prefix (e.g. `/api/me`), matching the exi
 | --- | --- | --- | --- |
 | GET / PUT | /me | signed in | read or create/update own profile |
 | GET | /users | signed in | member directory |
+| GET | /skills | anyone (no token) | the shared skill tag list |
 | PUT | /users/:id | PM/TL sharing a project with that user (P1) | edit a dev's profile |
 | POST | /projects | signed in | create project; caller becomes PM/TL |
 | GET | /projects/:id | project members + PM/TL | project, team, tasks, edges |
@@ -89,6 +91,28 @@ All routes are served under the `/api` prefix (e.g. `/api/me`), matching the exi
 | POST | /tasks/:id/complete | assignee or PM/TL | mark done, run assignment |
 
 Return JSON errors with a clear message and correct status codes (400 validation, 401 no/invalid token, 403 not allowed, 404 not found).
+
+### Profile endpoint shapes
+
+Every error is `{"error": "<message>"}`. All routes except `/skills` need `Authorization: Bearer <Firebase ID token>`, or they return 401.
+
+A **profile** is:
+
+```json
+{
+  "id": "firebase-uid",
+  "name": "Alice Chen",
+  "email": "alice@gmail.com",
+  "seniority": "newbie",
+  "strengths": ["backend", "database"],
+  "interests": ["devops"]
+}
+```
+
+- `GET /api/me`: 200 with my profile, or 404 if I haven't created one yet. The frontend uses the 404 to send new users to profile creation.
+- `PUT /api/me`: body is `{name, seniority, strengths, interests}`, all required; it replaces the whole profile. 201 on first save, 200 after; both return the saved profile. 400 if validation fails (`validate_profile` in `backend/profiles.py`). `id` and `email` come from the token and are ignored if sent.
+- `GET /api/users`: 200 with an array of profiles sorted by name. Each also has `"projects": [{"id", "name"}]` for the directory cards; it's `[]` until projects exist.
+- `GET /api/skills`: 200 with the `SKILL_TAGS` array. The frontend reads tag options from here instead of hardcoding them.
 
 ## Task generation (LLM)
 

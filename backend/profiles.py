@@ -1,14 +1,15 @@
 from skills import SKILL_TAGS
 
 MAX_NAME_LENGTH = 100
+SENIORITY_LEVELS = ("newbie", "oldie")
 
 
 def validate_profile(data):
     """Check a profile payload from the client and return the cleaned fields.
 
     Raises ValueError with a message the UI can show if anything is invalid.
-    Only name, strengths, and interests are read; id, email, and created_at
-    come from the server, so any client-sent values for them are ignored.
+    Only name, seniority, strengths, and interests are read; id and email
+    come from the sign-in token, so any client-sent values for them are ignored.
     """
     if not isinstance(data, dict):
         raise ValueError("Profile must be a JSON object")
@@ -20,12 +21,17 @@ def validate_profile(data):
     if len(name) > MAX_NAME_LENGTH:
         raise ValueError(f"Name must be at most {MAX_NAME_LENGTH} characters")
 
+    seniority = data.get("seniority")
+    if seniority not in SENIORITY_LEVELS:
+        raise ValueError("Seniority must be newbie or oldie")
+
     strengths = _validate_tags(data.get("strengths"), "strengths")
     if not strengths:
         raise ValueError("Pick at least one strength")
 
     return {
         "name": name,
+        "seniority": seniority,
         "strengths": strengths,
         "interests": _validate_tags(data.get("interests"), "interests"),
     }
