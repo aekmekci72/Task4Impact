@@ -812,18 +812,14 @@ select {
   align-items: center;
 }
 
-/* Two-column layout for graph + assignments */
+/* The graph gets the full page width (graphs grow sideways, one column per dependency
+   level) and the assignments list sits below it. minmax(0, 1fr) lets a graph wider than
+   the page scroll inside its panel instead of stretching the page. */
 .graph-columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
   align-items: start;
-}
-
-@media (max-width: 720px) {
-  .graph-columns {
-    grid-template-columns: 1fr;
-  }
 }
 
 .graph-col-title {
