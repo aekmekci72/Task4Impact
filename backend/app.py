@@ -1,20 +1,16 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 
+from auth import verify_request
+from profile_routes import bp as profile_routes
+from project_routes import bp as project_routes
 from graph_routes import bp as graph_bp
 
+
 app = Flask(__name__)
-
-CORS(
-    app,
-    resources={r"/api/*": {"origins": "http://localhost:5173"}},
-    supports_credentials=True,
-    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
-)
-
-app.register_blueprint(graph_bp)
-
+CORS(app)
+app.before_request(verify_request)
+app.register_blueprint(profile_routes)
 
 @app.get("/api/me")
 def get_me():
@@ -29,4 +25,4 @@ def get_me():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5001, debug=True)
+    app.run(debug=True, port=5000)

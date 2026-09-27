@@ -1,11 +1,15 @@
 import { Avatar, TagList } from "./MemberCard.jsx";
+import { seniorityLabel } from "../tags.js";
 
 export default function ProfileCard({ profile }) {
   return (
     <article className="card">
       <header className="card-head">
         <Avatar name={profile.name} large />
-        <h3>{profile.name}</h3>
+        <div>
+          <h3>{profile.name}</h3>
+          {profile.seniority && <span className="muted">{seniorityLabel(profile.seniority)}</span>}
+        </div>
       </header>
       <section>
         <h4>Strengths</h4>
