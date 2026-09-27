@@ -1,142 +1,104 @@
-import { useState } from "react";
-import { API_URL, getToken } from "../api.js";
+import { useEffect, useState } from "react";
+import { generateTasks, getProject, getProjects, saveTasks } from "../api.js";
 
-// Paths below start with /api, so strip it from the shared API address.
-const API_BASE = API_URL.replace(/\/api$/, "");
-
-async function getAuthToken() {
-  return getToken();
-}
-
-async function apiPost(path) {
-  const token = await getAuthToken();
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `Request failed (${res.status})`);
-  }
-  return res.json();
-}
-
-// Mirrors graph_routes.py's DUMMY_USERS just for name lookups in the UI.
-const DUMMY_USER_NAMES = {
-  u1: "David",
-  u2: "Tiffany",
-  u3: "Jonah",
-  u4: "Anna",
+const DIFFICULTY_CLASS = {
+  easy: "diff-easy",
+  medium: "diff-medium",
+  hard: "diff-hard",
 };
 
-const styles = {
-  page: {
-    fontFamily: "'Inter', system-ui, sans-serif",
-    maxWidth: 760,
-    margin: "0 auto",
-    padding: "2.5rem 1.5rem",
-    color: "#1c1c1c",
-  },
-  heading: {
-    fontSize: "1.5rem",
-    fontWeight: 600,
-    marginBottom: "0.25rem",
-  },
-  subheading: {
-    color: "#666",
-    marginBottom: "1.75rem",
-    fontSize: "0.95rem",
-  },
-  buttonRow: {
-    display: "flex",
-    gap: "0.75rem",
-    marginBottom: "2rem",
-  },
-  button: {
-    padding: "0.6rem 1.1rem",
-    borderRadius: 6,
-    border: "1px solid #1c1c1c",
-    background: "#1c1c1c",
-    color: "#fff",
-    fontSize: "0.9rem",
-    cursor: "pointer",
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-    cursor: "not-allowed",
-  },
-  error: {
-    background: "#fdecea",
-    color: "#8a1f11",
-    padding: "0.75rem 1rem",
-    borderRadius: 6,
-    marginBottom: "1.5rem",
-    fontSize: "0.9rem",
-  },
-  section: {
-    marginBottom: "2rem",
-  },
-  sectionTitle: {
-    fontSize: "1.05rem",
-    fontWeight: 600,
-    marginBottom: "0.75rem",
-  },
-  card: {
-    border: "1px solid #e3e3e3",
-    borderRadius: 8,
-    padding: "0.9rem 1rem",
-    marginBottom: "0.6rem",
-  },
-  taskTitle: {
-    fontWeight: 600,
-    marginBottom: "0.2rem",
-  },
-  taskDesc: {
-    fontSize: "0.88rem",
-    color: "#555",
-    marginBottom: "0.5rem",
-  },
-  metaRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "0.4rem",
-    fontSize: "0.78rem",
-  },
-  tag: {
-    background: "#f1f1f1",
-    borderRadius: 4,
-    padding: "0.15rem 0.5rem",
-    color: "#444",
-  },
-  assignmentRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    padding: "0.6rem 0",
-    borderBottom: "1px solid #eee",
-    fontSize: "0.92rem",
-  },
-  empty: {
-    color: "#888",
-    fontSize: "0.9rem",
-    fontStyle: "italic",
-  },
-};
+function DifficultyBadge({ level }) {
+  return (
+    <span className={`graph-badge graph-badge-diff ${DIFFICULTY_CLASS[level] ?? ""}`}>
+      {level}
+    </span>
+  );
+}
 
+function SkillBadge({ skill }) {
+  return <span className="graph-badge graph-badge-skill">{skill}</span>;
+}
+
+function TaskCard({ task }) {
+  return (
+    <article className="card card-compact graph-task-card">
+      <div className="graph-task-header">
+        <span className="graph-task-title">{task.title}</span>
+        {task.status === "done" ? (
+          <span className="graph-badge">done</span>
+        ) : (
+          <DifficultyBadge level={task.estimated_difficulty} />
+        )}
+      </div>
+      <p className="graph-task-desc">{task.description}</p>
+      <div className="graph-task-meta">
+        {task.suggested_skills?.map((s) => (
+          <SkillBadge key={s} skill={s} />
+        ))}
+        {task.dependencies?.length > 0 && (
+          <span className="graph-badge graph-badge-dep">
+            after: {task.dependencies.join(", ")}
+          </span>
+        )}
+        {task.capacity && task.capacity > 1 && (
+          <span className="graph-badge graph-badge-cap">×{task.capacity} people</span>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function AssignmentRow({ name, taskLabel }) {
+  return (
+    <div className="graph-assignment-row">
+      <div className="graph-assignment-user">
+        <span className="graph-avatar">{name[0]}</span>
+        <span className="graph-assignment-name">{name}</span>
+      </div>
+      <div className="graph-assignment-arrow">→</div>
+      <div className="graph-assignment-task">{taskLabel}</div>
+    </div>
+  );
+}
+
+// Generate a draft graph for a project, review it, then save it. Saving runs assignment,
+// so the assignments column reflects the saved project, not the draft.
 export default function GraphPage() {
-  const [graph, setGraph] = useState(null);
-  const [assignments, setAssignments] = useState(null);
-  const [loading, setLoading] = useState(null); // "generate" | "assign" | null
+  const [projects, setProjects] = useState([]);
+  const [projectId, setProjectId] = useState("");
+  const [project, setProject] = useState(null); // saved project, with tasks and members
+  const [draft, setDraft] = useState(null); // generated graph that hasn't been saved
+  const [loading, setLoading] = useState(null); // "generate" | "save" | null
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    getProjects()
+      .then((list) => {
+        setProjects(list);
+        if (list.length) setProjectId((current) => current || list[0].id);
+      })
+      .catch((e) => setError(e.message));
+  }, []);
+
+  useEffect(() => {
+    if (!projectId) return;
+    getProject(projectId)
+      .then(setProject)
+      .catch((e) => setError(e.message));
+  }, [projectId]);
+
+  function handleProjectChange(id) {
+    setDraft(null);
+    setProject(null);
+    setError(null);
+    setProjectId(id);
+  }
 
   async function handleGenerate() {
     setLoading("generate");
     setError(null);
     try {
-      const data = await apiPost("/api/graph/generate");
-      setGraph(data);
+      setDraft(await generateTasks(projectId));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -144,12 +106,13 @@ export default function GraphPage() {
     }
   }
 
-  async function handleAssign() {
-    setLoading("assign");
+  async function handleSave() {
+    setLoading("save");
     setError(null);
     try {
-      const data = await apiPost("/api/graph/assign");
-      setAssignments(data);
+      await saveTasks(projectId, draft.tasks);
+      setProject(await getProject(projectId));
+      setDraft(null);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -157,12 +120,11 @@ export default function GraphPage() {
     }
   }
 
-  function taskLabel(taskId) {
-    const task = graph?.tasks?.find((t) => t.id === taskId);
-    return task ? task.title : taskId;
-  }
-
-  const hasAssignments = assignments && Object.keys(assignments).length > 0;
+  const tasks = draft?.tasks ?? project?.tasks ?? [];
+  const names = Object.fromEntries((project?.members ?? []).map((m) => [m.id, m.name]));
+  const assignments = (project?.tasks ?? [])
+    .filter((t) => t.status === "todo")
+    .flatMap((t) => t.assignee_ids.map((uid) => ({ uid, task: t })));
 
   return (
     <div className="graph-page">
@@ -170,36 +132,49 @@ export default function GraphPage() {
         <div>
           <h1>Dependency Graph &amp; Task Assignment</h1>
           <p className="muted">
-            Generate a task DAG from your project description, then auto-assign tasks to your team.
+            Generate a task graph from a project&rsquo;s description, review it, then save it to
+            assign tasks to the team.
           </p>
         </div>
         <div className="graph-actions">
           <button
             className="btn btn-ghost"
             onClick={handleGenerate}
-            disabled={loading !== null}
+            disabled={!projectId || loading !== null}
             id="btn-generate-graph"
           >
             {loading === "generate" ? (
-              <><span className="spinner" /> Generating…</>
+              <><span className="spinner" /> Generating… (can take ~30s)</>
             ) : (
               "Generate graph"
             )}
           </button>
           <button
             className="btn btn-primary"
-            onClick={handleAssign}
-            disabled={loading !== null}
-            id="btn-assign-tasks"
+            onClick={handleSave}
+            disabled={!draft || loading !== null}
+            id="btn-save-graph"
           >
-            {loading === "assign" ? (
-              <><span className="spinner" /> Assigning…</>
+            {loading === "save" ? (
+              <><span className="spinner" /> Saving…</>
             ) : (
-              "Assign tasks"
+              "Save & assign"
             )}
           </button>
         </div>
       </header>
+
+      <label className="field" style={{ marginBottom: "1.5rem", maxWidth: 360 }}>
+        <span className="label">Project</span>
+        <select value={projectId} onChange={(e) => handleProjectChange(e.target.value)}>
+          {projects.length === 0 && <option value="">No projects yet</option>}
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </label>
 
       {error && (
         <p className="error card" role="alert" style={{ marginBottom: "1.5rem" }}>
@@ -211,41 +186,40 @@ export default function GraphPage() {
         {/* ── Graph column ── */}
         <section className="graph-col">
           <h2 className="graph-col-title">
-            Task Graph
-            {graph?.tasks && (
-              <span className="graph-count">{graph.tasks.length} tasks</span>
-            )}
+            {draft ? "Draft (not saved)" : "Task Graph"}
+            {tasks.length > 0 && <span className="graph-count">{tasks.length} tasks</span>}
           </h2>
-          {!graph ? (
-            <p className="muted empty">Hit &ldquo;Generate graph&rdquo; to build the DAG.</p>
+          {draft && (
+            <p className="muted">
+              Review the draft, then &ldquo;Save &amp; assign&rdquo;. Tasks that keep the same id
+              keep their progress.
+            </p>
+          )}
+          {tasks.length === 0 ? (
+            <p className="muted empty">
+              No tasks yet. Hit &ldquo;Generate graph&rdquo; to draft them from the description.
+            </p>
           ) : (
-            graph.tasks.map((task) => <TaskCard key={task.id} task={task} />)
+            tasks.map((task) => <TaskCard key={task.id} task={task} />)
           )}
         </section>
 
         {/* ── Assignments column ── */}
         <section className="graph-col">
           <h2 className="graph-col-title">
-            Assignments
-            {hasAssignments && (
-              <span className="graph-count">{Object.keys(assignments).length} assigned</span>
+            Current assignments
+            {assignments.length > 0 && (
+              <span className="graph-count">{assignments.length} assigned</span>
             )}
           </h2>
-          {!assignments ? (
-            <p className="muted empty">Hit &ldquo;Assign tasks&rdquo; to run the optimizer.</p>
-          ) : !hasAssignments ? (
+          {assignments.length === 0 ? (
             <p className="muted empty">
-              No one assigned — nothing unlocked yet, or no idle team members.
+              No one is working on anything yet. Save a graph to assign the ready tasks.
             </p>
           ) : (
             <div className="card graph-assignments-card">
-              {Object.entries(assignments).map(([userId, taskId]) => (
-                <AssignmentRow
-                  key={userId}
-                  userId={userId}
-                  taskId={taskId}
-                  taskLabel={taskLabel(taskId)}
-                />
+              {assignments.map(({ uid, task }) => (
+                <AssignmentRow key={`${uid}-${task.id}`} name={names[uid] ?? uid} taskLabel={task.title} />
               ))}
             </div>
           )}
