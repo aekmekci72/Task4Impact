@@ -7,7 +7,10 @@ from firebase import db
 
 
 def save_tasks(project_id, tasks):
-    """Replace a project's whole task graph. tasks are dicts shaped like dependency_graph.Task."""
+    """Replace a project's whole task graph. tasks are dicts shaped like dependency_graph.Task.
+
+    status, assignee_ids, and completed_at are kept if a task has them; otherwise it starts fresh.
+    """
     batch = db.batch()
     for doc in _tasks(project_id).stream():
         batch.delete(doc.reference)
@@ -19,9 +22,9 @@ def save_tasks(project_id, tasks):
             "suggested_skills": task.get("suggested_skills", []),
             "estimated_difficulty": task["estimated_difficulty"],
             "capacity": task.get("capacity"),
-            "status": "todo",
-            "assignee_ids": [],
-            "completed_at": None,
+            "status": task.get("status", "todo"),
+            "assignee_ids": task.get("assignee_ids", []),
+            "completed_at": task.get("completed_at"),
         })
     batch.commit()
 

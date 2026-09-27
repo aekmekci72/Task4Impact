@@ -45,7 +45,7 @@ def put_tasks(project_id):
     error = validate_graph(graph.tasks)
     if error:
         return jsonify({"error": error}), 400
-    save_tasks(project_id, [task.model_dump() for task in graph.tasks])
+    save_tasks(project_id, _carry_over_progress(graph.tasks, get_tasks(project_id)))
     run_assignment(project)
     return jsonify(get_tasks(project_id))
 
@@ -100,6 +100,27 @@ def put_assignees(project_id, task_id):
     if busy:
         return jsonify({"error": f"Already working on another task: {busy}"}), 400
     return jsonify(set_assignees(project_id, task_id, user_ids))
+
+
+
+def _carry_over_progress(tasks, old_tasks):
+    """Keep status and assignees for tasks that survive an edit, unless that would break assignment rules."""
+    old = {t["id"]: t for t in old_tasks}
+    kept_done = {task.id for task in tasks if task.id in old and old[task.id]["status"] == "done"}
+    merged = []
+    for task in tasks:
+        fields = task.model_dump()
+        previous = old.get(task.id)
+        if previous:
+            still_valid = previous["status"] == "done" or (
+                all(dep in kept_done for dep in task.dependencies)
+                and len(previous["assignee_ids"]) <= task_capacity(task)
+            )
+            fields["status"] = previous["status"]
+            fields["completed_at"] = previous["completed_at"]
+            fields["assignee_ids"] = previous["assignee_ids"] if still_valid else []
+        merged.append(fields)
+    return merged
 
 
 def run_assignment(project):
