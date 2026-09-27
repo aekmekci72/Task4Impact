@@ -213,6 +213,10 @@ def validate_graph(tasks: List[Task]) -> Optional[str]:
 
 def _is_overload_error(exc: Exception) -> bool:
     """True for Gemini's transient 'model overloaded' / rate-limit style errors."""
+    # A per-day quota (e.g. the free tier's 20 requests/day) won't clear by waiting a few
+    # seconds, so fail fast instead of retrying.
+    if "perday" in str(exc).lower():
+        return False
     if isinstance(exc, genai_errors.ServerError):
         return True
     if isinstance(exc, genai_errors.APIError):
