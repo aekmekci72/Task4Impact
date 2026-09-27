@@ -19,7 +19,7 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 - **Database:** Firestore, accessed from the API through `firebase-admin`. The frontend never talks to Firestore directly; all reads and writes go through the API.
 - **Auth:** Firebase Auth (Google sign-in)
 - **LLM:** provider TBD. API key lives in a gitignored `.env` on the backend, never in frontend code or the repo.
-- **Deploy:** TBD
+- **Deploy:** API on Render, frontend on Firebase Hosting
 
 ## Repo layout
 
