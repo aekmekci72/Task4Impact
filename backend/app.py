@@ -1,17 +1,32 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 
-from auth import verify_request
-from profile_routes import bp as profile_routes
+from graph_routes import bp as graph_bp
 
 app = Flask(__name__)
-CORS(app)
-app.before_request(verify_request)
-app.register_blueprint(profile_routes)
 
-@app.get("/api/hello")
-def hello():
-    return jsonify({"message": "Hello from Flask!"})
+CORS(
+    app,
+    resources={r"/api/*": {"origins": "http://localhost:5173"}},
+    supports_credentials=True,
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+)
+
+app.register_blueprint(graph_bp)
+
+
+@app.get("/api/me")
+def get_me():
+    return jsonify({
+        "id": "u1",
+        "name": "David",
+        "email": "david@example.com",
+        "strengths": ["backend", "firebase", "auth"],
+        "interests": ["backend"],
+        "seniority": "senior"
+    })
+
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(host="127.0.0.1", port=5001, debug=True)
