@@ -55,6 +55,7 @@ export const onUserChanged = (cb) => {
 export const signIn = (email, password) => authModule.then((m) => m.signIn(email, password));
 export const signUp = (email, password) => authModule.then((m) => m.signUp(email, password));
 export const signOut = () => authModule.then((m) => m.signOut());
+export const getToken = () => authModule.then((m) => m.getToken());
 
 async function request(method, path, body) {
   if (USE_MOCK) {
