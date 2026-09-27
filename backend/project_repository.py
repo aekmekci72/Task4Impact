@@ -1,8 +1,10 @@
 from collections import defaultdict
 from datetime import datetime, timezone
 
+from google.cloud.firestore_v1.base_query import FieldFilter
+
 from firebase import db
-from profile_repository import get_profile
+from profile_repository import get_profiles
 
 
 def create_project(name, description, creator_id):
@@ -29,23 +31,29 @@ def get_project(project_id):
     if not doc.exists:
         return None
 
-    members = []
-    member_docs = db.collection("project_members").where("project_id", "==", project_id).stream()
-    for member_doc in member_docs:
-        profile = get_profile(member_doc.to_dict()["user_id"])
-        if profile is not None:
-            members.append(profile)
-    members.sort(key=lambda profile: profile["name"].casefold())
-    return {**doc.to_dict(), "id": doc.id, "members": members}
+    member_docs = db.collection("project_members").where(filter=FieldFilter("project_id", "==", project_id)).stream()
+    member_ids = [member_doc.to_dict()["user_id"] for member_doc in member_docs]
+    return {**doc.to_dict(), "id": doc.id, "members": _sorted_by_name(get_profiles(member_ids))}
 
 
 def list_projects():
+    # Three reads in total (memberships, the members' profiles, projects) instead of
+    # one read per member per project.
+    member_ids = defaultdict(list)
+    for doc in db.collection("project_members").stream():
+        membership = doc.to_dict()
+        member_ids[membership["project_id"]].append(membership["user_id"])
+    all_ids = {uid for ids in member_ids.values() for uid in ids}
+    profiles = {profile["id"]: profile for profile in get_profiles(all_ids)}
     projects = [
-        project
+        {
+            **doc.to_dict(),
+            "id": doc.id,
+            "members": _sorted_by_name([profiles[uid] for uid in member_ids[doc.id] if uid in profiles]),
+        }
         for doc in db.collection("projects").stream()
-        if (project := get_project(doc.id)) is not None
     ]
-    return sorted(projects, key=lambda project: project["name"].casefold())
+    return _sorted_by_name(projects)
 
 
 def projects_by_member():
@@ -89,3 +97,7 @@ def remove_project_member(project_id, user_id):
 
 def _membership_ref(project_id, user_id):
     return db.collection("project_members").document(f"{project_id}:{user_id}")
+
+
+def _sorted_by_name(items):
+    return sorted(items, key=lambda item: item["name"].casefold())

@@ -6,6 +6,12 @@ def get_profile(uid):
     return _to_profile(doc) if doc.exists else None
 
 
+def get_profiles(uids):
+    """Profiles for the given uids in one round trip. Uids without a profile are skipped."""
+    refs = [db.collection("users").document(uid) for uid in uids]
+    return [_to_profile(doc) for doc in db.get_all(refs) if doc.exists]
+
+
 def list_profiles():
     docs = db.collection("users").stream()
     return sorted((_to_profile(d) for d in docs), key=lambda p: p["name"].casefold())
