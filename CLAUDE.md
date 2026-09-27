@@ -52,8 +52,8 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 
 PM/TL is per-project, not an account type: whoever creates a project is its PM/TL (`projects.pm_user_id`). Everyone else on it is a dev.
 
-- Any signed-in user: view directory, create/edit own profile, create a project, view and check off OWN tasks.
-- PM/TL of a project: edit project, add/remove devs, generate/edit/save tasks, view all tasks on the project, check off any task on the project.
+- Any signed-in user: view directory, create/edit own profile, create projects, edit project details, add/remove project members, view and check off OWN tasks.
+- PM/TL of a project: generate/edit/save tasks, view all tasks on the project, check off any task on the project.
 - Enforce every permission in the API. Hiding a button in the UI is not a permission check.
 
 ## Data model (Firestore)
@@ -83,9 +83,9 @@ All routes are served under the `/api` prefix (e.g. `/api/me`), matching the exi
 | GET | /skills | anyone (no token) | the shared skill tag list |
 | PUT | /users/:id | PM/TL sharing a project with that user (P1) | edit a dev's profile |
 | POST | /projects | signed in | create project; caller becomes PM/TL |
-| GET | /projects/:id | project members + PM/TL | project, team, tasks, edges |
-| PUT | /projects/:id | PM/TL | edit name/description |
-| POST / DELETE | /projects/:id/members | PM/TL | add/remove a dev |
+| GET | /projects/:id | signed in | project, team, tasks, edges |
+| PUT | /projects/:id | signed in | edit name/description |
+| POST / DELETE | /projects/:id/members | signed in | add/remove a dev |
 | POST | /projects/:id/generate | PM/TL | return LLM draft; saves NOTHING |
 | PUT | /projects/:id/tasks | PM/TL | save whole graph, validate, run assignment |
 | GET | /me/tasks | signed in | tasks assigned to me |
