@@ -96,17 +96,32 @@ export async function getMe() {
 
 export const saveMe = (profile) => request("PUT", "/me", profile);
 export const getUsers = () => request("GET", "/users");
+export const getProjects = () => request("GET", "/projects");
+export const createProject = (project) => request("POST", "/projects", project);
+export const updateProject = (id, fields) => request("PUT", `/projects/${id}`, fields);
+export const addProjectMember = (projectId, userId) =>
+  request("POST", `/projects/${projectId}/members`, { user_id: userId });
+export const removeProjectMember = (projectId, userId) =>
+  request("DELETE", `/projects/${projectId}/members`, { user_id: userId });
 
 export const getMyTasks = () => request("GET", "/me/tasks");
 export const getProject = (id) => request("GET", `/projects/${id}`);
 
-// There's no "which project am I on" endpoint yet, so use project_id from /me if the API adds
-// it (asked Jonah), otherwise the project of the tasks assigned to me. Each member is on one
-// project. Returns null if neither tells us a project.
+// Prefer the newest project created by this user; otherwise show the project from their profile
+// or assigned tasks so existing member dashboards keep working.
 export async function getMyProject(profile) {
-  const tasks = await getMyTasks();
-  const projectId = profile.project_id ?? tasks[0]?.project_id;
+  const [projects, tasks] = await Promise.all([
+    getProjects(),
+    getMyTasks().catch((err) => {
+      if (err.status === 404) return [];
+      throw err;
+    }),
+  ]);
+  const ownedProject = projects
+    .filter((project) => project.pm_user_id === profile.id)
+    .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))[0];
+  const projectId = ownedProject?.id ?? profile.project_id ?? tasks[0]?.project_id;
   if (!projectId) return null;
-  const project = await getProject(projectId);
+  const project = projects.find((item) => item.id === projectId) ?? await getProject(projectId);
   return { ...project, myTasks: tasks.filter((t) => t.project_id === projectId) };
 }

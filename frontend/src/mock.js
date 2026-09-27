@@ -84,6 +84,15 @@ export async function getToken() {
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 
+function projectResponse(project, users) {
+  const { member_ids, tasks, ...rest } = project;
+  return {
+    ...rest,
+    members: users.filter((user) => member_ids.includes(user.id)),
+    tasks: (tasks ?? []).map((task) => ({ ...task, project_id: project.id })),
+  };
+}
+
 export async function mockRequest(method, path, body) {
   const session = load(SESSION_KEY, null);
   if (!session) throw httpError(401, "Not signed in");
@@ -93,6 +102,51 @@ export async function mockRequest(method, path, body) {
   const withProjectId = (task, project) => ({ ...task, project_id: project.id });
 
   if (path === "/users" && method === "GET") return users;
+  if (path === "/projects" && method === "GET") {
+    return projects
+      .map((project) => projectResponse(project, users))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  if (path === "/projects" && method === "POST") {
+    if (!body?.name?.trim()) throw httpError(400, "Project name is required");
+    if (body.description != null && typeof body.description !== "string") {
+      throw httpError(400, "Project description must be a string");
+    }
+    const project = {
+      id: `mock-${Date.now()}`,
+      name: body.name.trim(),
+      description: body.description?.trim() ?? "",
+      pm_user_id: session.uid,
+      created_at: new Date().toISOString(),
+      member_ids: [session.uid],
+      tasks: [],
+    };
+    save(PROJECTS_KEY, [...projects, project]);
+    return projectResponse(project, users);
+  }
+
+  const memberMatch = path.match(/^\/projects\/([^/]+)\/members$/);
+  if (memberMatch && (method === "POST" || method === "DELETE")) {
+    const project = projects.find((p) => p.id === memberMatch[1]);
+    if (!project) throw httpError(404, "Project not found");
+    const userId = body?.user_id;
+    if (typeof userId !== "string" || !userId.trim()) {
+      throw httpError(400, "A user_id is required");
+    }
+    if (method === "POST") {
+      if (!users.some((user) => user.id === userId)) throw httpError(404, "User profile not found");
+      if (!project.member_ids.includes(userId)) {
+        project.member_ids = [...project.member_ids, userId];
+        save(PROJECTS_KEY, projects);
+      }
+    } else {
+      if (!project.member_ids.includes(userId)) throw httpError(404, "Project member not found");
+      project.member_ids = project.member_ids.filter((id) => id !== userId);
+      save(PROJECTS_KEY, projects);
+    }
+    return { project_id: project.id, user_id: userId };
+  }
 
   if (path === "/me") {
     if (method === "GET") {
@@ -137,16 +191,29 @@ export async function mockRequest(method, path, body) {
   }
 
   const projectMatch = path.match(/^\/projects\/([^/]+)$/);
-  if (projectMatch && method === "GET") {
-    const project = projects.find((p) => p.id === projectMatch[1]);
+  if (projectMatch) {
+    const projectIndex = projects.findIndex((p) => p.id === projectMatch[1]);
+    const project = projects[projectIndex];
     if (!project) throw httpError(404, "Project not found");
-    if (!project.member_ids.includes(session.uid)) throw httpError(403, "Not on this project");
-    const { member_ids, tasks, ...rest } = project;
-    return {
-      ...rest,
-      members: users.filter((u) => member_ids.includes(u.id)),
-      tasks: tasks.map((t) => withProjectId(t, project)),
-    };
+    if (method === "GET") return projectResponse(project, users);
+    if (method === "PUT") {
+      if (!body || !Object.keys(body).length || Object.keys(body).some((key) => !["name", "description"].includes(key))) {
+        throw httpError(400, "Only name and description can be updated");
+      }
+      if ("name" in body && !body.name?.trim()) throw httpError(400, "Project name cannot be empty");
+      if ("description" in body && typeof body.description !== "string") {
+        throw httpError(400, "Project description must be a string");
+      }
+      const updated = {
+        ...project,
+        ...body,
+        ...(body.name && { name: body.name.trim() }),
+        ...(body.description != null && { description: body.description.trim() }),
+      };
+      projects[projectIndex] = updated;
+      save(PROJECTS_KEY, projects);
+      return projectResponse(updated, users);
+    }
   }
 
   throw httpError(404, `Mock has no route for ${method} ${path}`);

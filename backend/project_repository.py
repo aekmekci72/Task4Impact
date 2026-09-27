@@ -38,6 +38,15 @@ def get_project(project_id):
     return {**doc.to_dict(), "id": doc.id, "members": members}
 
 
+def list_projects():
+    projects = [
+        project
+        for doc in db.collection("projects").stream()
+        if (project := get_project(doc.id)) is not None
+    ]
+    return sorted(projects, key=lambda project: project["name"].casefold())
+
+
 def update_project(project_id, fields):
     project_ref = db.collection("projects").document(project_id)
     if not project_ref.get().exists:

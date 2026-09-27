@@ -458,3 +458,224 @@ select {
     width: 100%;
   }
 }
+
+.projects-page {
+  display: grid;
+  gap: 24px;
+}
+.projects-heading,
+.project-title-row,
+.team-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.projects-heading h1 {
+  font-size: 28px;
+}
+.projects-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.8fr);
+  gap: 32px;
+  align-items: start;
+}
+.project-index {
+  min-width: 0;
+  padding-right: 20px;
+  border-right: 1px solid var(--border);
+}
+.project-index h2 {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.project-index-list,
+.project-member-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.project-select {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-h);
+  text-align: left;
+  cursor: pointer;
+}
+.project-select:hover,
+.project-select.selected {
+  background: var(--accent-bg);
+}
+.project-select-name {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.project-select-meta,
+.project-kicker {
+  color: var(--muted);
+  font-size: 12px;
+}
+.project-detail {
+  display: grid;
+  gap: 30px;
+  min-width: 0;
+}
+.project-summary {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.project-title-row h2 {
+  font-size: 25px;
+  overflow-wrap: anywhere;
+}
+.project-description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.project-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.project-team {
+  display: grid;
+  gap: 16px;
+}
+.team-heading h3 {
+  font-size: 19px;
+}
+.project-form {
+  display: grid;
+  gap: 20px;
+  max-width: 620px;
+}
+.project-form header {
+  display: grid;
+  gap: 4px;
+}
+.project-form h2,
+.projects-empty h2 {
+  font-size: 22px;
+}
+.project-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+  resize: vertical;
+}
+.member-add-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  max-width: 680px;
+}
+.member-add-form select {
+  width: 100%;
+}
+.project-member-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.project-member-info {
+  display: grid;
+  min-width: 0;
+}
+.project-member-info strong,
+.project-member-info span {
+  overflow-wrap: anywhere;
+}
+.btn-remove {
+  color: var(--danger);
+}
+.btn-remove:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
+}
+.project-notice {
+  color: var(--interest);
+}
+.team-empty,
+.projects-empty {
+  padding: 18px 0;
+}
+.projects-empty {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .projects-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .project-index {
+    padding: 0 0 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .project-index-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .topbar {
+    flex-wrap: wrap;
+  }
+  .topbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .projects-heading,
+  .project-title-row {
+    align-items: flex-start;
+  }
+  .projects-heading h1 {
+    font-size: 24px;
+  }
+  .project-title-row {
+    flex-direction: column;
+  }
+  .member-add-form {
+    grid-template-columns: 1fr;
+  }
+  .member-add-form .btn {
+    justify-self: start;
+  }
+  .project-member-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .project-member-row .role {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .project-member-row .btn-remove {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}

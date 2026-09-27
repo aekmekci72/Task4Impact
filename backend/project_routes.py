@@ -5,11 +5,17 @@ from project_repository import (
     add_project_member,
     create_project,
     get_project,
+    list_projects as list_project_records,
     remove_project_member,
     update_project,
 )
 
 bp = Blueprint("projects", __name__, url_prefix="/api")
+
+
+@bp.get("/projects")
+def get_projects():
+    return jsonify(list_project_records())
 
 
 @bp.post("/projects")

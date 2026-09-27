@@ -4,6 +4,7 @@ import { getMe, onUserChanged, signIn, signOut, signUp } from "./api.js";
 import Home from "./components/Home.jsx";
 import ProfileForm from "./components/ProfileForm.jsx";
 import GraphPage from "./components/GraphPage.jsx";
+import ProjectsPage from "./components/ProjectsPage.jsx";
 import "./App.css";
 
 // Email/password sign-in and sign-up (Firebase Auth).
@@ -122,6 +123,12 @@ function App() {
               Graph
             </Link>
             <Link
+              to="/projects"
+              className={`btn btn-ghost${location.pathname === "/projects" ? " btn-active" : ""}`}
+            >
+              Projects
+            </Link>
+            <Link
               to="/edit-profile"
               className={`btn btn-ghost${location.pathname === "/edit-profile" ? " btn-active" : ""}`}
             >
@@ -152,6 +159,10 @@ function App() {
           <Route
             path="/graphpage"
             element={authContent ?? <GraphPage />}
+          />
+          <Route
+            path="/projects"
+            element={authContent ?? <ProjectsPage />}
           />
           <Route
             path="/edit-profile"
