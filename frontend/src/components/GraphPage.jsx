@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { getToken } from "../api.js";
+import { API_URL, getToken } from "../api.js";
 
-const API_BASE = "http://localhost:5001";
+// Paths below start with /api, so strip it from the shared API address.
+const API_BASE = API_URL.replace(/\/api$/, "");
 
 async function getAuthToken() {
   return getToken();

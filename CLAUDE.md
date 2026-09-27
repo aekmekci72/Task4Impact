@@ -36,8 +36,8 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 - Backend dev: `cd backend && .venv/bin/python app.py` (serves on port 5001; macOS AirPlay takes port 5000). Needs `firebase-service-account.json` in `backend/`.
 - Seed demo data: `cd backend && .venv/bin/python seed.py` creates six fake members and a "Demo: Food Bank Tracker" project with a partly finished task graph (re-running resets it; add `--delete` to remove everything). Seed ids start with `seed-` and can't sign in.
 - Firestore access goes through `db` in `backend/firebase.py`; each collection gets its own `*_repository.py` (e.g. `profile_repository.py`).
-- Deploy (API): Render web service, root directory `backend`, build `pip install -r requirements.txt`, start `gunicorn app:app`. The service account key is a Render secret file; `FIREBASE_CREDENTIALS_PATH=/etc/secrets/firebase-service-account.json` points `firebase.py` at it.
-- Deploy (frontend): TBD (Firebase Hosting)
+- Deploy (API): live at https://task4impact.onrender.com. Render web service, root directory `backend`, build `pip install -r requirements.txt`, start `gunicorn app:app`. The service account key is a Render secret file; `FIREBASE_CREDENTIALS_PATH=/etc/secrets/firebase-service-account.json` points `firebase.py` at it. Free plan: sleeps after ~15 min idle, so the first request then takes 30–50s. It deploys from the public GitHub repo, so after pushing, click **Manual Deploy** in the Render dashboard. `GEMINI_API_KEY` (or the LLM key in use) is set in Render's Environment tab.
+- Deploy (frontend): live at https://hackintroproject.web.app via Firebase Hosting. From `frontend/`: `npx firebase-tools login --no-localhost` once (with a Google account that has access to the `hackintroproject` Firebase project), then `npm run build && npx firebase-tools deploy --only hosting`. The build reads the API address from `frontend/.env.production`; `npm run dev` still uses the local backend.
 
 ## Secrets
 
