@@ -34,7 +34,7 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 - Frontend install / dev: `cd frontend && npm install && npm run dev`
 - Backend install: `cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`
 - Backend dev: `cd backend && .venv/bin/python app.py` (serves on port 5001; macOS AirPlay takes port 5000). Needs `firebase-service-account.json` in `backend/`.
-- Seed demo profiles: `cd backend && .venv/bin/python seed_profiles.py` (add `--delete` to remove them). Seed ids start with `seed-` and can't sign in.
+- Seed demo data: `cd backend && .venv/bin/python seed.py` creates six fake members and a "Demo: Food Bank Tracker" project with a partly finished task graph (re-running resets it; add `--delete` to remove everything). Seed ids start with `seed-` and can't sign in.
 - Firestore access goes through `db` in `backend/firebase.py`; each collection gets its own `*_repository.py` (e.g. `profile_repository.py`).
 - Deploy (API): Render web service, root directory `backend`, build `pip install -r requirements.txt`, start `gunicorn app:app`. The service account key is a Render secret file; `FIREBASE_CREDENTIALS_PATH=/etc/secrets/firebase-service-account.json` points `firebase.py` at it.
 - Deploy (frontend): TBD (Firebase Hosting)
@@ -71,7 +71,7 @@ Firestore has no schema, so the API is the only thing enforcing these shapes. Va
 Why this shape (full reasoning in the team proposal doc):
 - Tasks are a subcollection because Gemini's task ids are only unique within one graph. The slug is the document id, so `dependencies` point straight at sibling tasks.
 - Assignments live on the task (`assignee_ids`), never on the user. A user can be on several projects, and a capacity-2 task holds two people. Code that needs a user's current task derives it from the task docs.
-- Drafts are never stored. Generating returns a draft; saving writes every task as `todo`.
+- Drafts are never stored. Generating returns a draft; saving writes the graph. New tasks start as `todo`; tasks whose id already existed keep their progress (see `PUT /api/projects/:id/tasks`).
 - `GET /api/me/tasks` is a collection-group query on `tasks` where `assignee_ids` contains the caller. It needs a one-time Firestore index; the first error message links to it.
 
 Skill tags are one fixed shared list used by both profiles and tasks: `SKILL_TAGS` in `backend/skills.py`. Import it; never hardcode tags elsewhere. The current values are placeholders until the team agrees on the final list.
@@ -94,6 +94,7 @@ All routes are served under the `/api` prefix (e.g. `/api/me`), matching the exi
 | POST | /projects/:id/generate | signed in | return LLM draft; saves NOTHING |
 | PUT | /projects/:id/tasks | signed in | save whole graph, validate, run assignment |
 | GET | /me/tasks | signed in | tasks assigned to me |
+| PUT | /projects/:id/tasks/:taskId/assignees | signed in (P1) | manually reassign a task |
 | POST | /projects/:id/tasks/:taskId/complete | signed in | mark done, run assignment (under the project because task ids are only unique per project) |
 
 Return JSON errors with a clear message and correct status codes (400 validation, 401 no/invalid token, 403 not allowed, 404 not found).
@@ -119,6 +120,36 @@ A **profile** is:
 - `PUT /api/me`: body is `{name, seniority, strengths, interests}`, all required; it replaces the whole profile. 201 on first save, 200 after; both return the saved profile. 400 if validation fails (`validate_profile` in `backend/profiles.py`). `id` and `email` come from the token and are ignored if sent.
 - `GET /api/users`: 200 with an array of profiles sorted by name. Each also has `"projects": [{"id", "name"}]` for the directory cards; it's `[]` until projects exist.
 - `GET /api/skills`: 200 with the `SKILL_TAGS` array. The frontend reads tag options from here instead of hardcoding them.
+
+### Project and task endpoint shapes
+
+A **task** (as the API returns it) is:
+
+```json
+{
+  "id": "setup-repo",
+  "project_id": "seed-demo-project",
+  "title": "Set up repo and CI",
+  "description": "Set up repo and CI.",
+  "dependencies": [],
+  "suggested_skills": ["backend", "devops"],
+  "estimated_difficulty": "easy",
+  "capacity": null,
+  "status": "done",
+  "assignee_ids": ["seed-sam"],
+  "completed_at": "2026-09-27T05:42:52.452388+00:00"
+}
+```
+
+`status` is `todo` or `done`. A `todo` task with `assignee_ids` is in progress; one without is waiting (either blocked by dependencies or nobody is free). `assignee_ids` stays set after a task is done. `completed_at` is an ISO string or null. `capacity` null means the default (1, or 2 for hard tasks).
+
+- `GET /api/projects/:id`: 200 with `{id, name, description, pm_user_id, created_at, members: [profile], tasks: [task]}`; 404 if missing. `GET /api/projects` returns the same objects without `tasks`.
+- `POST /api/projects/:id/generate`: no body. 200 with a draft `{"tasks": [...]}`, where each task has only `id, title, description, dependencies, suggested_skills, estimated_difficulty, capacity`. Saves nothing. 400 if the project has no description; 502 if Gemini fails (the message says why).
+- `PUT /api/projects/:id/tasks`: body `{"tasks": [...]}` in the draft shape (edited or not). Validates, replaces the project's graph, runs assignment, and returns 200 with the saved tasks. 400 with a message for a cycle, unknown dependency, bad tag, duplicate id, bad difficulty, missing field, or empty list. Tasks are matched to existing ones by `id`: a task that already existed keeps its status, assignees, and `completed_at` (finished tasks always stay finished); an in-progress task loses its assignees if it now waits on an unfinished dependency or its capacity dropped below its assignee count. New ids start fresh, and tasks left out are deleted. Progress can't be set from the request body.
+- `GET /api/me/tasks`: 200 with every task I'm assigned to across all projects, including finished ones. Filter by `status` for open vs. completed.
+- `PUT /api/projects/:id/tasks/:taskId/assignees`: body `{"assignee_ids": [uid, ...]}` replaces the task's assignees (`[]` unassigns). 200 with the updated task. 400 if the task is done, still waiting on dependencies, someone isn't a project member, the list exceeds the task's capacity, or someone already has another open task on this project. Does not re-run assignment.
+- `PUT /api/users/:id`: same body and validation as `PUT /api/me`, for editing another member's profile. Keeps that member's own email. 200 with the profile; 404 if they have no profile (it never creates one).
+- `POST /api/projects/:id/tasks/:taskId/complete`: no body. Marks it done, then assigns whatever it unblocked. 200 with the completed task; 404 if the project or task is missing. Refetch the project to see the new assignments.
 
 ## Task generation (LLM)
 

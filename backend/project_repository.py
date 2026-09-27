@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime, timezone
 
 from firebase import db
@@ -45,6 +46,21 @@ def list_projects():
         if (project := get_project(doc.id)) is not None
     ]
     return sorted(projects, key=lambda project: project["name"].casefold())
+
+
+def projects_by_member():
+    """Maps each user id to the projects they're on, as [{"id", "name"}] sorted by name."""
+    names = {doc.id: doc.to_dict()["name"] for doc in db.collection("projects").stream()}
+    by_member = defaultdict(list)
+    for doc in db.collection("project_members").stream():
+        membership = doc.to_dict()
+        if membership["project_id"] in names:
+            by_member[membership["user_id"]].append(
+                {"id": membership["project_id"], "name": names[membership["project_id"]]}
+            )
+    for projects in by_member.values():
+        projects.sort(key=lambda project: project["name"].casefold())
+    return by_member
 
 
 def update_project(project_id, fields):

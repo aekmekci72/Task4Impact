@@ -9,6 +9,7 @@ from project_repository import (
     remove_project_member,
     update_project,
 )
+from task_repository import get_tasks
 
 bp = Blueprint("projects", __name__, url_prefix="/api")
 
@@ -40,7 +41,7 @@ def get_project_route(project_id):
     project = get_project(project_id)
     if project is None:
         return jsonify({"error": "Project not found"}), 404
-    return jsonify(project)
+    return jsonify({**project, "tasks": get_tasks(project_id)})
 
 
 @bp.put("/projects/<project_id>")

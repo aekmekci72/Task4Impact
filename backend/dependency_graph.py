@@ -152,6 +152,51 @@ def _has_cycle(tasks: List[Task]) -> bool:
     return any(visit(task_id) for task_id in graph)
 
 
+DIFFICULTIES = ("easy", "medium", "hard")
+
+
+def validate_graph(tasks: List[Task]) -> Optional[str]:
+    """Returns a message describing the first problem with the graph, or None if it's valid.
+
+    Used both for Gemini's output and for graphs a person edited before saving.
+    """
+    task_ids = [task.id for task in tasks]
+
+    duplicates = sorted({task_id for task_id in task_ids if task_ids.count(task_id) > 1})
+    if duplicates:
+        return f"duplicate task ids: {duplicates}"
+
+    unknown_refs = [
+        dependency
+        for task in tasks
+        for dependency in task.dependencies
+        if dependency not in task_ids
+    ]
+    if unknown_refs:
+        return f"dependencies reference unknown task ids: {unknown_refs}"
+
+    invalid_skills = [
+        skill
+        for task in tasks
+        for skill in task.suggested_skills
+        if skill not in SKILL_TAGS
+    ]
+    if invalid_skills:
+        return (
+            f"tasks contain invalid skill tags: {invalid_skills}. "
+            f"Valid tags are: {list(SKILL_TAGS)}"
+        )
+
+    bad_difficulty = [task.id for task in tasks if task.estimated_difficulty not in DIFFICULTIES]
+    if bad_difficulty:
+        return f"estimated_difficulty must be easy, medium, or hard (tasks: {bad_difficulty})"
+
+    if _has_cycle(tasks):
+        return "the graph contains a cycle"
+
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Graph generation
 # ---------------------------------------------------------------------------
@@ -221,37 +266,8 @@ def generate_dependency_graph(
             )
             continue
 
-        task_ids = {task.id for task in parsed.tasks}
-
-        unknown_refs = [
-            dependency
-            for task in parsed.tasks
-            for dependency in task.dependencies
-            if dependency not in task_ids
-        ]
-
-        if unknown_refs:
-            last_error = (
-                f"dependencies reference unknown task ids: {unknown_refs}"
-            )
-            continue
-
-        invalid_skills = [
-            skill
-            for task in parsed.tasks
-            for skill in task.suggested_skills
-            if skill not in SKILL_TAGS
-        ]
-
-        if invalid_skills:
-            last_error = (
-                f"tasks contain invalid skill tags: {invalid_skills}. "
-                f"Valid tags are: {list(SKILL_TAGS)}"
-            )
-            continue
-
-        if _has_cycle(parsed.tasks):
-            last_error = "the generated graph contains a cycle"
+        last_error = validate_graph(parsed.tasks)
+        if last_error:
             continue
 
         return parsed.model_dump()
