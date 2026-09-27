@@ -2,53 +2,6 @@ import { useEffect, useState } from "react";
 import { generateTasks, getProject, getProjects, saveTasks } from "../api.js";
 import DependencyGraphView from "./DependencyGraphView";
 
-const DIFFICULTY_CLASS = {
-  easy: "diff-easy",
-  medium: "diff-medium",
-  hard: "diff-hard",
-};
-
-function DifficultyBadge({ level }) {
-  return (
-    <span className={`graph-badge graph-badge-diff ${DIFFICULTY_CLASS[level] ?? ""}`}>
-      {level}
-    </span>
-  );
-}
-
-function SkillBadge({ skill }) {
-  return <span className="graph-badge graph-badge-skill">{skill}</span>;
-}
-
-function TaskCard({ task }) {
-  return (
-    <article className="card card-compact graph-task-card">
-      <div className="graph-task-header">
-        <span className="graph-task-title">{task.title}</span>
-        {task.status === "done" ? (
-          <span className="graph-badge">done</span>
-        ) : (
-          <DifficultyBadge level={task.estimated_difficulty} />
-        )}
-      </div>
-      <p className="graph-task-desc">{task.description}</p>
-      <div className="graph-task-meta">
-        {task.suggested_skills?.map((s) => (
-          <SkillBadge key={s} skill={s} />
-        ))}
-        {task.dependencies?.length > 0 && (
-          <span className="graph-badge graph-badge-dep">
-            after: {task.dependencies.join(", ")}
-          </span>
-        )}
-        {task.capacity && task.capacity > 1 && (
-          <span className="graph-badge graph-badge-cap">×{task.capacity} people</span>
-        )}
-      </div>
-    </article>
-  );
-}
-
 function AssignmentRow({ name, taskLabel }) {
   return (
     <div className="graph-assignment-row">
