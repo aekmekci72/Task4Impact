@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getMyProject } from "../api.js";
 import Directory from "./Directory.jsx";
 import ProfileCard from "./ProfileCard.jsx";
@@ -8,11 +8,17 @@ export default function Home({ profile }) {
   const [project, setProject] = useState(undefined); // null = not on a project
   const [error, setError] = useState("");
 
+  const loadProject = useCallback(
+    () =>
+      getMyProject(profile)
+        .then(setProject)
+        .catch((err) => setError(err.message)),
+    [profile],
+  );
+
   useEffect(() => {
-    getMyProject(profile)
-      .then(setProject)
-      .catch((err) => setError(err.message));
-  }, [profile]);
+    loadProject();
+  }, [loadProject]);
 
   let projectContent;
   if (error) {
@@ -33,7 +39,7 @@ export default function Home({ profile }) {
       </article>
     );
   } else {
-    projectContent = <ProjectCard project={project} meId={profile.id} />;
+    projectContent = <ProjectCard project={project} meId={profile.id} onChange={loadProject} />;
   }
 
   return (

@@ -5,14 +5,13 @@
 //                         or 404 if the user has not created one yet
 //   PUT  /me           -> body { name, seniority, strengths, interests }; returns the saved profile
 //   GET  /users        -> [profile, ...]
-//   GET  /me/tasks     -> tasks assigned to me:
-//                         [{ id, project_id, title, description, suggested_skills,
-//                            estimated_difficulty, dependencies,
-//                            status: "draft" | "todo" | "done", assignee_id, completed_at }]
-//   GET  /projects/:id -> CLAUDE.md says "project, team, tasks, edges" but doesn't fix the shape.
-//                         Assumed until the route exists (edges = each task's dependencies):
-//                         { id, name, description, pm_user_id, members: [profile, ...], tasks }
-// Task field names follow backend/dependency_graph.py (Task).
+//   GET  /me/tasks     -> every task I'm assigned to, across projects, including finished ones:
+//                         [{ id, project_id, title, description, dependencies, suggested_skills,
+//                            estimated_difficulty, capacity, status: "todo" | "done",
+//                            assignee_ids: [uid], completed_at }]
+//   GET  /projects/:id -> { id, name, description, pm_user_id, created_at, members: [profile], tasks }
+//   Task routes (generate, save graph, complete, reassign): see "Project and task endpoint
+//   shapes" in CLAUDE.md.
 //
 // Skill tag values must match backend/skills.py (see tags.js).
 
@@ -107,6 +106,13 @@ export const removeProjectMember = (projectId, userId) =>
 
 export const getMyTasks = () => request("GET", "/me/tasks");
 export const getProject = (id) => request("GET", `/projects/${id}`);
+
+export const generateTasks = (projectId) => request("POST", `/projects/${projectId}/generate`);
+export const saveTasks = (projectId, tasks) => request("PUT", `/projects/${projectId}/tasks`, { tasks });
+export const completeTask = (projectId, taskId) =>
+  request("POST", `/projects/${projectId}/tasks/${taskId}/complete`);
+export const setTaskAssignees = (projectId, taskId, assigneeIds) =>
+  request("PUT", `/projects/${projectId}/tasks/${taskId}/assignees`, { assignee_ids: assigneeIds });
 
 // Prefer the newest project created by this user; otherwise show the project from their profile
 // or assigned tasks so existing member dashboards keep working.
