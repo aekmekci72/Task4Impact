@@ -1,12 +1,12 @@
 import { useState } from "react";
+import { getToken } from "../api.js";
 
 // Adjust for your setup (env var, proxy config, deployed URL, etc).
 const API_BASE = "http://localhost:5001";
 
-// TODO: wire this up to your real Firebase auth once David's auth work lands.
-// Should return the current user's ID token, or null if not signed in.
+// The signed-in user's Firebase ID token (refreshed automatically), or null if signed out.
 async function getAuthToken() {
-  return null;
+  return getToken();
 }
 
 async function apiPost(path) {

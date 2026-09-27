@@ -33,7 +33,7 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 <!-- Fill in the TBDs as setup lands -->
 - Frontend install / dev: `cd frontend && npm install && npm run dev`
 - Backend install: `cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`
-- Backend dev: `cd backend && .venv/bin/python app.py` (serves on port 5000). Needs `firebase-service-account.json` in `backend/`.
+- Backend dev: `cd backend && .venv/bin/python app.py` (serves on port 5001; macOS AirPlay takes port 5000). Needs `firebase-service-account.json` in `backend/`.
 - Seed demo profiles: `cd backend && .venv/bin/python seed_profiles.py` (add `--delete` to remove them). Seed ids start with `seed-` and can't sign in.
 - Firestore access goes through `db` in `backend/firebase.py`; each collection gets its own `*_repository.py` (e.g. `profile_repository.py`).
 - Deploy (API): Render web service, root directory `backend`, build `pip install -r requirements.txt`, start `gunicorn app:app`. The service account key is a Render secret file; `FIREBASE_CREDENTIALS_PATH=/etc/secrets/firebase-service-account.json` points `firebase.py` at it.
@@ -51,11 +51,11 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 
 ## Roles and permissions
 
-PM/TL is per-project, not an account type: whoever creates a project is its PM/TL (`projects.pm_user_id`). Everyone else on it is a dev.
+PM/TL is per-project, not an account type: whoever creates a project is its PM/TL (`projects.pm_user_id`). The creator is also added as a project member, so they get tasks too, and can remove themselves. Everyone else on it is a dev.
 
-- Any signed-in user: view directory, create/edit own profile, create projects, edit project details, add/remove project members, view and check off OWN tasks.
-- PM/TL of a project: generate/edit/save tasks, view all tasks on the project, check off any task on the project.
-- Enforce every permission in the API. Hiding a button in the UI is not a permission check.
+**For this build, PM/TL permissions are intentionally not enforced: any signed-in user can do every action**, including editing projects, managing members, generating and saving tasks, and checking off any task. `pm_user_id` is stored and shown in the UI but never checked. Don't add PM/TL checks unless the team decides to; the PRD's PM/TL-only rules describe how it would work in a real deployment.
+
+- Every route except health checks and `/api/skills` still requires a valid sign-in token (see Auth).
 
 ## Data model (Firestore)
 
@@ -64,12 +64,15 @@ Firestore has no schema, so the API is the only thing enforcing these shapes. Va
 | Collection | Fields | Notes |
 | --- | --- | --- |
 | users | id (Firebase uid), name, email, seniority (`newbie` / `oldie`), strengths, interests | strengths/interests = arrays of skill tags; seniority is used in assignment scoring (`backend/task_assignment.py`) |
-| projects | id, name, description, pm_user_id → users id, created_at | |
-| project_members | project_id, user_id | one doc per membership |
-| tasks | id, project_id, title, description, tags, difficulty (`easy`/`medium`/`hard`), status (`draft`/`todo`/`done`), assignee_id (nullable), completed_at | tags = array |
-| task_deps | task_id, depends_on_id | one doc per edge |
+| projects | id (auto), name, description, pm_user_id → users id, created_at | |
+| project_members | project_id, user_id | one doc per membership, id `{project_id}:{user_id}`; the PM/TL is a member too |
+| projects/{id}/tasks | id (the slug Gemini returns, e.g. `setup-firebase`), title, description, dependencies, suggested_skills, estimated_difficulty (`easy`/`medium`/`hard`), capacity (1 or 2), status (`todo`/`done`), assignee_ids, completed_at (timestamp or null) | subcollection under its project; dependencies = array of sibling task ids; suggested_skills = array of skill tags; assignee_ids = array of uids |
 
-`project_members` and `task_deps` are carried over from the relational design and haven't been re-decided for Firestore. Storing them as arrays on the parent doc is an option. Ask before changing it.
+Why this shape (full reasoning in the team proposal doc):
+- Tasks are a subcollection because Gemini's task ids are only unique within one graph. The slug is the document id, so `dependencies` point straight at sibling tasks.
+- Assignments live on the task (`assignee_ids`), never on the user. A user can be on several projects, and a capacity-2 task holds two people. Code that needs a user's current task derives it from the task docs.
+- Drafts are never stored. Generating returns a draft; saving writes every task as `todo`.
+- `GET /api/me/tasks` is a collection-group query on `tasks` where `assignee_ids` contains the caller. It needs a one-time Firestore index; the first error message links to it.
 
 Skill tags are one fixed shared list used by both profiles and tasks: `SKILL_TAGS` in `backend/skills.py`. Import it; never hardcode tags elsewhere. The current values are placeholders until the team agrees on the final list.
 
@@ -82,16 +85,20 @@ All routes are served under the `/api` prefix (e.g. `/api/me`), matching the exi
 | GET / PUT | /me | signed in | read or create/update own profile |
 | GET | /users | signed in | member directory |
 | GET | /skills | anyone (no token) | the shared skill tag list |
+<<<<<<< HEAD
 | PUT | /users/:id | PM/TL sharing a project with that user (P1) | edit a dev's profile |
 | GET | /projects | signed in | list projects |
+=======
+| PUT | /users/:id | signed in (P1) | edit another member's profile |
+>>>>>>> d15dc2c8c1bf9aea16ccf47c9efaa4223840d560
 | POST | /projects | signed in | create project; caller becomes PM/TL |
 | GET | /projects/:id | signed in | project, team, tasks, edges |
 | PUT | /projects/:id | signed in | edit name/description |
 | POST / DELETE | /projects/:id/members | signed in | add/remove a dev |
-| POST | /projects/:id/generate | PM/TL | return LLM draft; saves NOTHING |
-| PUT | /projects/:id/tasks | PM/TL | save whole graph, validate, run assignment |
+| POST | /projects/:id/generate | signed in | return LLM draft; saves NOTHING |
+| PUT | /projects/:id/tasks | signed in | save whole graph, validate, run assignment |
 | GET | /me/tasks | signed in | tasks assigned to me |
-| POST | /tasks/:id/complete | assignee or PM/TL | mark done, run assignment |
+| POST | /projects/:id/tasks/:taskId/complete | signed in | mark done, run assignment (under the project because task ids are only unique per project) |
 
 Return JSON errors with a clear message and correct status codes (400 validation, 401 no/invalid token, 403 not allowed, 404 not found).
 
@@ -119,41 +126,37 @@ A **profile** is:
 
 ## Task generation (LLM)
 
-- Send project name, description, and the skill tag list. Require JSON only, shaped like:
+- Implemented in `backend/dependency_graph.py` (`generate_dependency_graph`), using Gemini structured output. The `Task` model there is the source of truth for task fields. A draft looks like:
 
 ```json
 {
   "tasks": [
     {
-      "id": "t1",
-      "title": "Set up D1 schema",
-      "description": "Create users, projects, tasks tables",
-      "tags": ["backend", "database"],
-      "difficulty": "medium",
-      "depends_on": []
+      "id": "setup-firebase",
+      "title": "Set up Firebase",
+      "description": "Create the Firebase project and connect the backend",
+      "dependencies": [],
+      "suggested_skills": ["backend", "firebase"],
+      "estimated_difficulty": "medium",
+      "capacity": null
     }
   ]
 }
 ```
 
-- Validate before returning the draft (and again on save):
-  1. Parses; every task has id, title, tags from the allowed list.
-  2. Every `depends_on` id exists.
-  3. No cycles, checked with Kahn's algorithm (leftover nodes = cycle).
-  4. 3–25 tasks.
-- On failure retry once, then return an error the UI can show.
-- The draft is only shown to the PM/TL for review. Nothing is saved or assigned until `PUT /projects/:id/tasks`.
+- Validate before returning the draft (and again on save): every task has an id and title, skills come from `SKILL_TAGS`, every dependency id exists, and there are no cycles. On failure the generator retries, then raises an error the UI can show.
+- The draft is shown for review before saving. Nothing is saved or assigned until `PUT /projects/:id/tasks`.
 
 ## Assignment
 
-Runs after the graph is saved and after every check-off. Put it in one pure function that is easy to unit test.
+Runs after the graph is saved and after every check-off. Implemented as a pure function, `assign_tasks` in `backend/task_assignment.py`, which uses the OR-Tools CP-SAT solver.
 
-- A task is **ready** if status is `todo`, it has no assignee, and every task it depends on is `done`.
-- Order ready tasks by number of downstream tasks (most first).
-- For each task, score every dev on the project and pick the highest; ties go to fewer open tasks:
-  `score = 2*|strengths ∩ tags| + 1*|interests ∩ tags| − 1.5*openTasks`
-- A dev holds at most 2 open tasks per project. If no dev has room, the task waits.
-- Weights are starting values; keep them as named constants.
+- A task is **ready** if it isn't done, isn't already taken, and every task it depends on is done.
+- Each person holds **one open task at a time**. Only idle members of the project are assigned.
+- A task holds up to `capacity` people: 1 by default, 2 for hard tasks unless set.
+- The solver first assigns as many idle people as capacity allows, then maximizes fit: strength and interest matches, seniority vs. difficulty, how much downstream work a task unlocks, and a bonus for pairing an oldie with a newbie on a capacity-2 task.
+- Weights are named constants at the top of `task_assignment.py`; tune them there.
+- `assign_tasks` takes users with a `current_task` field. Routes build that from the task docs' `assignee_ids` before calling it; don't store `current_task` on user docs.
 
 ## Working rules for Claude Code
 

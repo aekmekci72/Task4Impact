@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 
 from auth import verify_request
+from graph_routes import bp as graph_routes
 from profile_routes import bp as profile_routes
 from project_routes import bp as project_routes
 
@@ -10,6 +11,7 @@ CORS(app)
 app.before_request(verify_request)
 app.register_blueprint(profile_routes)
 app.register_blueprint(project_routes)
+app.register_blueprint(graph_routes)
 
 @app.get("/api/hello")
 def hello():
