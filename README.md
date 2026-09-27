@@ -45,4 +45,4 @@ Built by Anna Ekmekci, David Halsey, Jonah Fishman, and Tiffany Xiao for the Hac
 - **Anna:** task generation with Gemini, the assignment solver, the dependency graph view
 - **David:** Firebase sign-in, the graph page
 - **Jonah:** backend API and data layer, profile and task routes, deployment
-- **Tiffany:** UI and visual design, the projects page and routes
+- **Tiffany:** UI and visual design, the home/projects pages and routes
