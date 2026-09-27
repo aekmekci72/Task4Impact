@@ -18,7 +18,7 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 - **Frontend:** React + Vite, npm
 - **Database:** Firestore, accessed from the API through `firebase-admin`. The frontend never talks to Firestore directly; all reads and writes go through the API.
 - **Auth:** Firebase Auth (Google sign-in)
-- **LLM:** Gemini, via the `google-genai` SDK (`backend/dependency_graph.py`). The key is read from the `GEMINI_API_KEY` environment variable; keep it in a gitignored `.env`, never in frontend code or the repo.
+- **LLM:** Gemini, via the `google-genai` SDK (`backend/dependency_graph.py`). The key is read from the `GEMINI_API_KEY` environment variable. Locally, put `GEMINI_API_KEY=...` in `backend/.env` (gitignored; `firebase.py` loads it with `python-dotenv`). On Render, set it in the dashboard. Never put it in frontend code or the repo.
 - **Deploy:** API on Render, frontend on Firebase Hosting
 
 ## Repo layout
