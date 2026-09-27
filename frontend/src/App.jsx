@@ -239,7 +239,8 @@ function App() {
         </div>
       </header>
 
-      <main className="app-main">
+      {/* The Graph page gets a wider column so the graph and the assignments fit side by side */}
+      <main className={`app-main${location.pathname === "/graphpage" ? " app-main-wide" : ""}`}>
         <Routes>
           <Route
             path="/"

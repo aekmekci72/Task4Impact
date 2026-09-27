@@ -812,14 +812,39 @@ select {
   align-items: center;
 }
 
-/* The graph gets the full page width (graphs grow sideways, one column per dependency
-   level) and the assignments list sits below it. minmax(0, 1fr) lets a graph wider than
-   the page scroll inside its panel instead of stretching the page. */
+/* The graph takes the remaining width and "Current assignments" sits in a 300px column
+   on the right. minmax(0, 1fr) lets a graph wider than its panel scroll inside the panel
+   instead of stretching the page. On narrow screens the assignments move below. */
 .graph-columns {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 300px;
   gap: 24px;
   align-items: start;
+}
+/* Keep the assignments in view while scrolling down a tall graph */
+.graph-columns > .graph-col:last-child {
+  position: sticky;
+  top: 16px;
+}
+/* In the narrow column each assignment reads as two lines: who, then → what */
+.graph-columns .graph-assignment-row {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 8px;
+}
+.graph-columns .graph-assignment-user {
+  grid-column: 1 / -1;
+}
+.graph-columns .graph-assignment-task {
+  text-align: left;
+}
+
+@media (max-width: 960px) {
+  .graph-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .graph-columns > .graph-col:last-child {
+    position: static;
+  }
 }
 
 .graph-col-title {
@@ -1028,6 +1053,23 @@ select {
 /* With room beside the column, fade the veil's edges into the map. */
 @media (min-width: 1200px) {
   .app-main {
+    background: linear-gradient(
+      90deg,
+      rgba(232, 243, 239, 0) 0,
+      rgba(232, 243, 239, 0.88) 40px,
+      rgba(232, 243, 239, 0.88) calc(100% - 40px),
+      rgba(232, 243, 239, 0) 100%
+    );
+  }
+}
+/* Graph page: a wider column (1440px). Its veil only fades at the edges once the
+   window is wide enough to leave room beside it. */
+.app-main-wide {
+  max-width: 1440px;
+  background: rgba(232, 243, 239, 0.88);
+}
+@media (min-width: 1520px) {
+  .app-main-wide {
     background: linear-gradient(
       90deg,
       rgba(232, 243, 239, 0) 0,
