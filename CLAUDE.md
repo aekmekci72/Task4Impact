@@ -18,7 +18,7 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 - **Frontend:** React + Vite, npm
 - **Database:** Firestore, accessed from the API through `firebase-admin`. The frontend never talks to Firestore directly; all reads and writes go through the API.
 - **Auth:** Firebase Auth (Google sign-in)
-- **LLM:** provider TBD. API key lives in a gitignored `.env` on the backend, never in frontend code or the repo.
+- **LLM:** Gemini, via the `google-genai` SDK (`backend/dependency_graph.py`). The key is read from the `GEMINI_API_KEY` environment variable; keep it in a gitignored `.env`, never in frontend code or the repo.
 - **Deploy:** API on Render, frontend on Firebase Hosting
 
 ## Repo layout
@@ -33,7 +33,7 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 <!-- Fill in the TBDs as setup lands -->
 - Frontend install / dev: `cd frontend && npm install && npm run dev`
 - Backend dev: `cd backend && python app.py` (serves on port 5000). Needs `firebase-service-account.json` in `backend/`.
-- Backend dependencies: TBD (no `requirements.txt` yet; currently `flask`, `flask-cors`, `firebase-admin`)
+- Backend dependencies: TBD (no `requirements.txt` yet; currently `flask`, `flask-cors`, `firebase-admin`, `google-genai`, `pydantic`)
 - Deploy: TBD
 
 ## Secrets
@@ -68,7 +68,7 @@ Firestore has no schema, so the API is the only thing enforcing these shapes. Va
 
 `project_members` and `task_deps` are carried over from the relational design and haven't been re-decided for Firestore. Storing them as arrays on the parent doc is an option. Ask before changing it.
 
-Skill tags are one fixed shared list (agree on it during setup) used by both profiles and tasks, e.g. frontend, backend, database, auth, ui-design, devops, data-ml. Keep it in one shared constant.
+Skill tags are one fixed shared list used by both profiles and tasks: `SKILL_TAGS` in `backend/skills.py`. Import it; never hardcode tags elsewhere. The current values are placeholders until the team agrees on the final list.
 
 ## API
 
