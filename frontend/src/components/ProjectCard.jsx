@@ -10,14 +10,16 @@ function TaskRow({ task }) {
       </span>
       <div className="task-body">
         <span className="task-title">{task.title}</span>
-        {task.tags?.map((tag) => (
+        {task.suggested_skills?.map((tag) => (
           <span key={tag} className="chip chip-strength">
             {tagLabel(tag)}
           </span>
         ))}
       </div>
-      {!done && task.difficulty && (
-        <span className={`difficulty difficulty-${task.difficulty}`}>{task.difficulty}</span>
+      {!done && task.estimated_difficulty && (
+        <span className={`difficulty difficulty-${task.estimated_difficulty}`}>
+          {task.estimated_difficulty}
+        </span>
       )}
     </li>
   );

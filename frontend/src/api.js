@@ -6,18 +6,40 @@
 //   PUT  /me           -> body { name, strengths, interests }; returns the saved profile
 //   GET  /users        -> [profile, ...]
 //   GET  /me/tasks     -> tasks assigned to me:
-//                         [{ id, project_id, title, description, tags, difficulty,
+//                         [{ id, project_id, title, description, suggested_skills,
+//                            estimated_difficulty, dependencies,
 //                            status: "draft" | "todo" | "done", assignee_id, completed_at }]
 //   GET  /projects/:id -> CLAUDE.md says "project, team, tasks, edges" but doesn't fix the shape.
-//                         Assumed until the route exists:
-//                         { id, name, description, pm_user_id, members: [profile, ...], tasks, deps }
+//                         Assumed until the route exists (edges = each task's dependencies):
+//                         { id, name, description, pm_user_id, members: [profile, ...], tasks }
+// Task field names follow backend/dependency_graph.py (Task).
 //
 // Skill tag values must match backend/skills.py (see tags.js).
+
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+} from "firebase/auth";
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
 
-const authModule = USE_MOCK ? import("./mock.js") : import("./firebase.js");
+// Real mode uses the Firebase `auth` from firebase.js (email/password sign-in). It's loaded
+// lazily so mock mode never initializes Firebase.
+function firebaseAuth({ auth }) {
+  return {
+    onUserChanged: (cb) =>
+      onAuthStateChanged(auth, (u) => cb(u && { uid: u.uid, email: u.email, name: u.displayName })),
+    signIn: (email, password) => signInWithEmailAndPassword(auth, email, password),
+    signUp: (email, password) => createUserWithEmailAndPassword(auth, email, password),
+    signOut: () => firebaseSignOut(auth),
+    getToken: () => auth.currentUser?.getIdToken() ?? null,
+  };
+}
+
+const authModule = USE_MOCK ? import("./mock.js") : import("./firebase.js").then(firebaseAuth);
 
 export const onUserChanged = (cb) => {
   let unsubscribe = () => {};
@@ -30,7 +52,8 @@ export const onUserChanged = (cb) => {
     unsubscribe();
   };
 };
-export const signIn = () => authModule.then((m) => m.signIn());
+export const signIn = (email, password) => authModule.then((m) => m.signIn(email, password));
+export const signUp = (email, password) => authModule.then((m) => m.signUp(email, password));
 export const signOut = () => authModule.then((m) => m.signOut());
 
 async function request(method, path, body) {

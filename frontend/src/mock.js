@@ -4,7 +4,7 @@
 import { SKILL_TAGS } from "./tags.js";
 
 const USERS_KEY = "mock:users:v3";
-const PROJECTS_KEY = "mock:projects:v3";
+const PROJECTS_KEY = "mock:projects:v4";
 const SESSION_KEY = "mock:session";
 const ME = "mock-me";
 
@@ -30,13 +30,13 @@ const SEED_PROJECTS = [
     pm_user_id: "seed-1",
     member_ids: ["seed-1", "seed-2", "seed-4", "seed-5"],
     tasks: [
-      { id: "t1", title: "Set up React project", tags: ["frontend"], difficulty: "easy", status: "done", assignee_id: ME, completed_at: daysAgo(9) },
-      { id: "t2", title: "Draft volunteer flow wireframes", tags: ["ui-design"], difficulty: "medium", status: "done", assignee_id: ME, completed_at: daysAgo(3) },
-      { id: "t3", title: "Build volunteer sign-up form", tags: ["frontend", "auth"], difficulty: "medium", status: "todo", assignee_id: ME, completed_at: null },
-      { id: "t4", title: "Design inventory dashboard", tags: ["ui-design", "frontend"], difficulty: "hard", status: "todo", assignee_id: ME, completed_at: null },
-      { id: "t5", title: "Design donations schema", tags: ["database"], difficulty: "medium", status: "todo", assignee_id: "seed-1", completed_at: null },
-      { id: "t6", title: "Set up CI pipeline", tags: ["devops"], difficulty: "easy", status: "done", assignee_id: "seed-5", completed_at: daysAgo(2) },
-      { id: "t7", title: "Add shift reminders", tags: ["backend"], difficulty: "medium", status: "draft", assignee_id: null, completed_at: null },
+      { id: "t1", title: "Set up React project", suggested_skills: ["frontend"], estimated_difficulty: "easy", dependencies: [], status: "done", assignee_id: ME, completed_at: daysAgo(9) },
+      { id: "t2", title: "Draft volunteer flow wireframes", suggested_skills: ["ui-design"], estimated_difficulty: "medium", dependencies: [], status: "done", assignee_id: ME, completed_at: daysAgo(3) },
+      { id: "t3", title: "Build volunteer sign-up form", suggested_skills: ["frontend", "auth"], estimated_difficulty: "medium", dependencies: [], status: "todo", assignee_id: ME, completed_at: null },
+      { id: "t4", title: "Design inventory dashboard", suggested_skills: ["ui-design", "frontend"], estimated_difficulty: "hard", dependencies: [], status: "todo", assignee_id: ME, completed_at: null },
+      { id: "t5", title: "Design donations schema", suggested_skills: ["database"], estimated_difficulty: "medium", dependencies: [], status: "todo", assignee_id: "seed-1", completed_at: null },
+      { id: "t6", title: "Set up CI pipeline", suggested_skills: ["devops"], estimated_difficulty: "easy", dependencies: [], status: "done", assignee_id: "seed-5", completed_at: daysAgo(2) },
+      { id: "t7", title: "Add shift reminders", suggested_skills: ["backend"], estimated_difficulty: "medium", dependencies: [], status: "draft", assignee_id: null, completed_at: null },
     ],
   },
   { id: "p2", name: "Shelter Finder", description: "", pm_user_id: "seed-3", member_ids: ["seed-3", "seed-6"], tasks: [] },
@@ -68,9 +68,11 @@ function setSession(user) {
   listeners.forEach((cb) => cb(user));
 }
 
-export async function signIn() {
-  setSession({ uid: "mock-me", email: "you@example.com", name: "Demo User" });
+// Any email and password work. Everyone signs in as the same mock user so the seed tasks show up.
+export async function signIn(email) {
+  setSession({ uid: ME, email: email || "you@example.com", name: "Demo User" });
 }
+export const signUp = signIn;
 
 export async function signOut() {
   setSession(null);
@@ -142,7 +144,6 @@ export async function mockRequest(method, path, body) {
       ...rest,
       members: users.filter((u) => member_ids.includes(u.id)),
       tasks: tasks.map((t) => withProjectId(t, project)),
-      deps: [],
     };
   }
 
