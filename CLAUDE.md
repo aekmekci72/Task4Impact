@@ -85,12 +85,8 @@ All routes are served under the `/api` prefix (e.g. `/api/me`), matching the exi
 | GET / PUT | /me | signed in | read or create/update own profile |
 | GET | /users | signed in | member directory |
 | GET | /skills | anyone (no token) | the shared skill tag list |
-<<<<<<< HEAD
-| PUT | /users/:id | PM/TL sharing a project with that user (P1) | edit a dev's profile |
-| GET | /projects | signed in | list projects |
-=======
 | PUT | /users/:id | signed in (P1) | edit another member's profile |
->>>>>>> d15dc2c8c1bf9aea16ccf47c9efaa4223840d560
+| GET | /projects | signed in | list projects |
 | POST | /projects | signed in | create project; caller becomes PM/TL |
 | GET | /projects/:id | signed in | project, team, tasks, edges |
 | PUT | /projects/:id | signed in | edit name/description |
