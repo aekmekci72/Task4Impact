@@ -30,12 +30,6 @@ def put_me():
     return jsonify({**profile, "projects": []}), 201 if created else 200
 
 
-@bp.get("/me/tasks")
-def my_tasks():
-    # Placeholder until tasks are stored: nobody has assigned tasks yet.
-    return jsonify([])
-
-
 @bp.get("/users")
 def users():
     return jsonify([{**p, "projects": []} for p in list_profiles()])
