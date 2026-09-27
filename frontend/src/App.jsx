@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
 import { getMe, onUserChanged, signIn, signOut, signUp } from "./api.js";
 import Home from "./components/Home.jsx";
 import ProfileForm from "./components/ProfileForm.jsx";
+import GraphPage from "./components/GraphPage.jsx";
 import "./App.css";
 
 // Email/password sign-in and sign-up (Firebase Auth).
@@ -54,25 +56,28 @@ function SignInForm() {
   );
 }
 
-// Flow: sign in -> has profile? -> no: create profile -> home (your profile, your
-// project's tasks, and your project team). Signed-in members can edit their profile from the header.
+// Flow: sign in -> has profile? -> no: create profile -> home.
 function App() {
   const [authUser, setAuthUser] = useState(undefined); // undefined = still checking
-  const [profile, setProfile] = useState(undefined); // null = signed in, no profile yet
-  const [editing, setEditing] = useState(false);
+  const [profile, setProfile] = useState(undefined);   // null = signed in, no profile yet
   const [error, setError] = useState("");
   const [homeVersion, setHomeVersion] = useState(0);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(
     () =>
       onUserChanged((user) => {
         setAuthUser(user);
         setProfile(undefined);
-        setEditing(false);
         setError("");
         if (user) {
           getMe()
-            .then(setProfile)
+            .then((p) => {
+              setProfile(p);
+              // First-time user: send them straight to profile creation
+              if (!p) navigate("/edit-profile", { replace: true });
+            })
             .catch((err) => setError(err.message));
         }
       }),
@@ -81,47 +86,88 @@ function App() {
 
   function handleSaved(saved) {
     setProfile(saved);
-    setEditing(false);
     setHomeVersion((v) => v + 1);
+    navigate("/");
   }
 
-  let content;
-  if (authUser === undefined) {
-    content = <p className="muted center">Loading…</p>;
-  } else if (!authUser) {
-    content = <SignInForm />;
-  } else if (error) {
-    content = <p className="error center" role="alert">Couldn't load your profile: {error}</p>;
-  } else if (profile === undefined) {
-    content = <p className="muted center">Loading your profile…</p>;
-  } else if (profile === null) {
-    content = <ProfileForm defaultName={authUser.name} onSaved={handleSaved} />;
-  } else if (editing) {
-    content = (
-      <ProfileForm initial={profile} onSaved={handleSaved} onCancel={() => setEditing(false)} />
-    );
-  } else {
-    content = <Home key={homeVersion} profile={profile} />;
+  // Decide what to render for routes that need auth
+  function AuthContent() {
+    if (authUser === undefined) return <p className="muted center">Loading…</p>;
+    if (!authUser) return <SignInForm />;
+    if (error) return <p className="error center" role="alert">Couldn't load your profile: {error}</p>;
+    if (profile === undefined) return <p className="muted center">Loading your profile…</p>;
+    return null; // auth is fine — let the Route element render
   }
+
+  const authContent = AuthContent();
 
   return (
     <div className="app">
       <header className="topbar">
         <span className="brand">Hack4Impact</span>
-        {authUser && (
+
+        {/* Nav links — only shown when signed in and profile exists */}
+        {authUser && profile && (
           <nav className="topbar-actions">
-            {profile && !editing && (
-              <button className="btn btn-ghost" onClick={() => setEditing(true)}>
-                Edit profile
-              </button>
-            )}
+            <Link
+              to="/"
+              className={`btn btn-ghost${location.pathname === "/" ? " btn-active" : ""}`}
+            >
+              Home
+            </Link>
+            <Link
+              to="/graphpage"
+              className={`btn btn-ghost${location.pathname === "/graphpage" ? " btn-active" : ""}`}
+            >
+              Graph
+            </Link>
+            <Link
+              to="/edit-profile"
+              className={`btn btn-ghost${location.pathname === "/edit-profile" ? " btn-active" : ""}`}
+            >
+              Edit profile
+            </Link>
+            <button className="btn btn-ghost" onClick={() => signOut()}>
+              Sign out
+            </button>
+          </nav>
+        )}
+
+        {/* Signed in but no profile yet — still show sign-out */}
+        {authUser && !profile && (
+          <nav className="topbar-actions">
             <button className="btn btn-ghost" onClick={() => signOut()}>
               Sign out
             </button>
           </nav>
         )}
       </header>
-      <main>{content}</main>
+
+      <main>
+        <Routes>
+          <Route
+            path="/"
+            element={authContent ?? <Home key={homeVersion} profile={profile} />}
+          />
+          <Route
+            path="/graphpage"
+            element={authContent ?? <GraphPage />}
+          />
+          <Route
+            path="/edit-profile"
+            element={
+              authContent ?? (
+                <ProfileForm
+                  initial={profile}
+                  defaultName={authUser?.name}
+                  onSaved={handleSaved}
+                  onCancel={() => navigate("/")}
+                />
+              )
+            }
+          />
+        </Routes>
+      </main>
     </div>
   );
 }
