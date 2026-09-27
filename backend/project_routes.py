@@ -9,7 +9,8 @@ from project_repository import (
     remove_project_member,
     update_project,
 )
-from task_repository import get_tasks
+from task_repository import get_tasks, set_assignees
+from task_routes import run_assignment
 
 bp = Blueprint("projects", __name__, url_prefix="/api")
 
@@ -81,6 +82,9 @@ def post_project_member(project_id):
         return jsonify({"error": "User profile not found"}), 404
 
     created = add_project_member(project_id, user_id)
+    if created:
+        # A new member may be free to pick up a ready task right away.
+        run_assignment(get_project(project_id))
     return jsonify({"project_id": project_id, "user_id": user_id}), 201 if created else 200
 
 
@@ -98,4 +102,9 @@ def delete_project_member(project_id):
     user_id = user_id.strip()
     if not remove_project_member(project_id, user_id):
         return jsonify({"error": "Project member not found"}), 404
+    # Free up their unfinished tasks for someone else; finished ones keep their name.
+    for task in get_tasks(project_id):
+        if task["status"] == "todo" and user_id in task["assignee_ids"]:
+            set_assignees(project_id, task["id"], [uid for uid in task["assignee_ids"] if uid != user_id])
+    run_assignment(get_project(project_id))
     return jsonify({"project_id": project_id, "user_id": user_id})
