@@ -53,9 +53,9 @@ The stack is what the repo scaffold already uses (it replaced the original Hono/
 
 PM/TL is per-project, not an account type: whoever creates a project is its PM/TL (`projects.pm_user_id`). The creator is also added as a project member, so they get tasks too, and can remove themselves. Everyone else on it is a dev.
 
-- Any signed-in user: view directory, create/edit own profile, create projects, edit project details, add/remove project members, view and check off OWN tasks.
-- PM/TL of a project: generate/edit/save tasks, view all tasks on the project, check off any task on the project.
-- Enforce every permission in the API. Hiding a button in the UI is not a permission check.
+**For this build, PM/TL permissions are intentionally not enforced: any signed-in user can do every action**, including editing projects, managing members, generating and saving tasks, and checking off any task. `pm_user_id` is stored and shown in the UI but never checked. Don't add PM/TL checks unless the team decides to; the PRD's PM/TL-only rules describe how it would work in a real deployment.
+
+- Every route except health checks and `/api/skills` still requires a valid sign-in token (see Auth).
 
 ## Data model (Firestore)
 
@@ -85,15 +85,15 @@ All routes are served under the `/api` prefix (e.g. `/api/me`), matching the exi
 | GET / PUT | /me | signed in | read or create/update own profile |
 | GET | /users | signed in | member directory |
 | GET | /skills | anyone (no token) | the shared skill tag list |
-| PUT | /users/:id | PM/TL sharing a project with that user (P1) | edit a dev's profile |
+| PUT | /users/:id | signed in (P1) | edit another member's profile |
 | POST | /projects | signed in | create project; caller becomes PM/TL |
 | GET | /projects/:id | signed in | project, team, tasks, edges |
 | PUT | /projects/:id | signed in | edit name/description |
 | POST / DELETE | /projects/:id/members | signed in | add/remove a dev |
-| POST | /projects/:id/generate | PM/TL | return LLM draft; saves NOTHING |
-| PUT | /projects/:id/tasks | PM/TL | save whole graph, validate, run assignment |
+| POST | /projects/:id/generate | signed in | return LLM draft; saves NOTHING |
+| PUT | /projects/:id/tasks | signed in | save whole graph, validate, run assignment |
 | GET | /me/tasks | signed in | tasks assigned to me |
-| POST | /projects/:id/tasks/:taskId/complete | assignee or PM/TL | mark done, run assignment (under the project because task ids are only unique per project) |
+| POST | /projects/:id/tasks/:taskId/complete | signed in | mark done, run assignment (under the project because task ids are only unique per project) |
 
 Return JSON errors with a clear message and correct status codes (400 validation, 401 no/invalid token, 403 not allowed, 404 not found).
 
@@ -140,7 +140,7 @@ A **profile** is:
 ```
 
 - Validate before returning the draft (and again on save): every task has an id and title, skills come from `SKILL_TAGS`, every dependency id exists, and there are no cycles. On failure the generator retries, then raises an error the UI can show.
-- The draft is only shown to the PM/TL for review. Nothing is saved or assigned until `PUT /projects/:id/tasks`.
+- The draft is shown for review before saving. Nothing is saved or assigned until `PUT /projects/:id/tasks`.
 
 ## Assignment
 
