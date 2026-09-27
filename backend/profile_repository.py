@@ -18,7 +18,7 @@ def save_profile(uid, email, fields):
     """
     ref = db.collection("users").document(uid)
     created = not ref.get().exists
-    ref.set({**fields, "email": email})
+    ref.set({**fields, "email": email}, merge=True)
     return {"id": uid, "email": email, **fields}, created
 
 

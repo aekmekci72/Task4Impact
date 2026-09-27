@@ -61,7 +61,7 @@ Firestore has no schema, so the API is the only thing enforcing these shapes. Va
 
 | Collection | Fields | Notes |
 | --- | --- | --- |
-| users | id (Firebase uid), name, email, seniority (`newbie` / `oldie`), strengths, interests | strengths/interests = arrays of skill tags; seniority is display only, never used in assignment |
+| users | id (Firebase uid), name, email, seniority (`newbie` / `oldie`), strengths, interests | strengths/interests = arrays of skill tags; seniority is used in assignment scoring (`backend/task_assignment.py`) |
 | projects | id, name, description, pm_user_id → users id, created_at | |
 | project_members | project_id, user_id | one doc per membership |
 | tasks | id, project_id, title, description, tags, difficulty (`easy`/`medium`/`hard`), status (`draft`/`todo`/`done`), assignee_id (nullable), completed_at | tags = array |
