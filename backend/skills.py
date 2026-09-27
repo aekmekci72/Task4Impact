@@ -8,4 +8,15 @@ SKILL_TAGS = (
     "ui-design",
     "devops",
     "data-ml",
+    "react",
+    "css",
+    "firebase",
+    "apis",
+    "python",
+    "javascript",
+    "node",
+    "testing",
+    "product-management",
+    "mobile"
 )
+
