@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { generateTasks, getProject, getProjects, saveTasks } from "../api.js";
 import DependencyGraphView from "./DependencyGraphView";
+import Perf from "./pixel/Perf.jsx";
+import PixelScene from "./pixel/PixelScene.jsx";
 
 function AssignmentRow({ name, taskLabel }) {
   return (
@@ -136,9 +138,17 @@ export default function GraphPage() {
         </p>
       )}
 
+      {loading === "generate" && (
+        <div className="card graph-generating">
+          <PixelScene variant="loading" coach />
+          <Perf />
+          <p className="muted">Generating… (can take ~30s)</p>
+        </div>
+      )}
+
       <div className="graph-columns">
         {/* ── Graph column ── */}
-        <section className="graph-col">
+        <section className="graph-col ticket">
           <h2 className="graph-col-title">
             {draft ? "Draft (not saved)" : "Task Graph"}
             {tasks.length > 0 && <span className="graph-count">{tasks.length} tasks</span>}
@@ -159,7 +169,7 @@ export default function GraphPage() {
         </section>
 
         {/* ── Assignments column ── */}
-        <section className="graph-col">
+        <section className="graph-col ticket">
           <h2 className="graph-col-title">
             Current assignments
             {assignments.length > 0 && (

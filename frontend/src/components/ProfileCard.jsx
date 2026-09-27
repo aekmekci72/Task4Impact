@@ -1,5 +1,6 @@
 import { Avatar, TagList } from "./MemberCard.jsx";
 import { seniorityLabel } from "../tags.js";
+import Perf from "./pixel/Perf.jsx";
 
 export default function ProfileCard({ profile }) {
   return (
@@ -11,6 +12,7 @@ export default function ProfileCard({ profile }) {
           {profile.seniority && <span className="muted">{seniorityLabel(profile.seniority)}</span>}
         </div>
       </header>
+      <Perf />
       <section>
         <h4>Strengths</h4>
         <TagList tags={profile.strengths} variant="chip-strength" />

@@ -9,6 +9,8 @@ import {
   updateProject,
 } from "../api.js";
 import { Avatar } from "./MemberCard.jsx";
+import Perf from "./pixel/Perf.jsx";
+import PixelScene from "./pixel/PixelScene.jsx";
 
 const sortProjects = (items) => [...items].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -181,7 +183,7 @@ export default function ProjectsPage() {
       {notice && <p className="project-notice" role="status">{notice}</p>}
 
       <div className="projects-layout">
-        <aside className="project-index" aria-label="Project list">
+        <aside className="project-index ticket" aria-label="Project list">
           <h2>All projects <span>{projects.length}</span></h2>
           {loading ? (
             <p className="muted">Loading projects…</p>
@@ -216,11 +218,12 @@ export default function ProjectsPage() {
 
         <section className="project-detail" aria-live="polite">
           {creating ? (
-            <form className="project-form" onSubmit={handleCreate}>
+            <form className="project-form ticket" onSubmit={handleCreate}>
               <header>
                 <h2>New project</h2>
                 <p className="muted">Set up a project, then invite its members.</p>
               </header>
+              <Perf />
               <label className="field">
                 <span className="label">Project name</span>
                 <input
@@ -239,6 +242,7 @@ export default function ProjectsPage() {
                   onChange={(event) => setForm({ ...form, description: event.target.value })}
                 />
               </label>
+              <Perf />
               <div className="actions">
                 <button className="btn btn-ghost" type="button" onClick={cancelForm} disabled={busy}>
                   Cancel
@@ -249,11 +253,12 @@ export default function ProjectsPage() {
               </div>
             </form>
           ) : editing && selectedProject ? (
-            <form className="project-form" onSubmit={handleSave}>
+            <form className="project-form ticket" onSubmit={handleSave}>
               <header>
                 <h2>Edit project</h2>
                 <p className="muted">Changes are shared with everyone on the project.</p>
               </header>
+              <Perf />
               <label className="field">
                 <span className="label">Project name</span>
                 <input
@@ -272,6 +277,7 @@ export default function ProjectsPage() {
                   onChange={(event) => setForm({ ...form, description: event.target.value })}
                 />
               </label>
+              <Perf />
               <div className="actions">
                 <button className="btn btn-ghost" type="button" onClick={cancelForm} disabled={busy}>
                   Cancel
@@ -283,7 +289,7 @@ export default function ProjectsPage() {
             </form>
           ) : selectedProject ? (
             <>
-              <section className="project-summary">
+              <section className="project-summary ticket">
                 <div className="project-title-row">
                   <div>
                     <p className="project-kicker">Project</p>
@@ -293,6 +299,7 @@ export default function ProjectsPage() {
                     Edit details
                   </button>
                 </div>
+                <Perf />
                 <p className="project-description">
                   {selectedProject.description || <span className="muted">No description yet.</span>}
                 </p>
@@ -302,13 +309,14 @@ export default function ProjectsPage() {
                 </div>
               </section>
 
-              <section className="project-team">
+              <section className="project-team ticket">
                 <div className="team-heading">
                   <div>
                     <h3>Team</h3>
                     <p className="muted">Manage who belongs to this project.</p>
                   </div>
                 </div>
+                <Perf />
                 <form className="member-add-form" onSubmit={handleAddMember}>
                   <label className="field">
                     <span className="label">Add a member</span>
@@ -362,9 +370,15 @@ export default function ProjectsPage() {
               </section>
             </>
           ) : loading ? (
-            <p className="muted">Loading projects…</p>
+            <div className="card">
+              <PixelScene variant="loading" />
+              <Perf />
+              <p className="muted">Loading projects…</p>
+            </div>
           ) : (
-            <div className="projects-empty">
+            <div className="projects-empty ticket">
+              <PixelScene variant="farm" />
+              <Perf />
               <h2>Start a project</h2>
               <p className="muted">Create a project to organize its details and team.</p>
               <button className="btn btn-primary" type="button" onClick={startCreate}>

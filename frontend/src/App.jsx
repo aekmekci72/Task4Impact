@@ -5,24 +5,51 @@ import Home from "./components/Home.jsx";
 import ProfileForm from "./components/ProfileForm.jsx";
 import GraphPage from "./components/GraphPage.jsx";
 import ProjectsPage from "./components/ProjectsPage.jsx";
+import MapBackground from "./components/pixel/MapBackground.jsx";
+import Perf from "./components/pixel/Perf.jsx";
+import PixelScene from "./components/pixel/PixelScene.jsx";
+import PixelTrain from "./components/pixel/PixelTrain.jsx";
+import StationScene from "./components/pixel/StationScene.jsx";
 import "./App.css";
 
 // Email/password sign-in and sign-up (Firebase Auth).
+// While a request is in flight, the station train pulls out and a mini train crosses the
+// button. On success this form unmounts (App switches views); on failure the train rolls back.
 function SignInForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(null); // "in" | "up" | null
+  const [stamped, setStamped] = useState(false);
+  const [trainPhase, setTrainPhase] = useState("idle"); // "idle" | "departing" | "arriving"
+
+  // After a failed attempt the train rolls back in, then waits at the platform again.
+  useEffect(() => {
+    if (trainPhase !== "arriving") return;
+    const timer = setTimeout(() => setTrainPhase("idle"), 2200);
+    return () => clearTimeout(timer);
+  }, [trainPhase]);
+
+  function submit(action, kind) {
+    setError("");
+    setPending(kind);
+    setStamped(true);
+    setTrainPhase("departing");
+    action(email, password).catch((err) => {
+      setError(err.message);
+      setPending(null);
+      setTrainPhase("arriving");
+    });
+  }
 
   const handleSignUp = (e) => {
     e.preventDefault();
-    setError("");
-    signUp(email, password).catch((err) => setError(err.message));
+    submit(signUp, "up");
   };
 
   const handleSignIn = (e) => {
     e.preventDefault();
-    setError("");
-    signIn(email, password).catch((err) => setError(err.message));
+    submit(signIn, "in");
   };
 
   return (
@@ -35,12 +62,15 @@ function SignInForm() {
           <li>Task graphs generated from a description</li>
           <li>Tasks auto-assigned as work unlocks</li>
         </ul>
+        <StationScene phase={trainPhase} />
       </aside>
       <form className="panel auth-form profile-form" onSubmit={handleSignIn}>
+        {stamped && <span className="ticket-stamp" aria-hidden="true" />}
         <header>
           <h2>Sign in</h2>
           <p className="hint">Use your email and password, or sign up if you're new.</p>
         </header>
+        <Perf />
         <label className="field">
           <span className="label">Email</span>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
@@ -56,14 +86,41 @@ function SignInForm() {
         </label>
         {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
-          <button type="button" className="btn btn-secondary" onClick={handleSignUp}>
-            Sign up
+          <button
+            type="button"
+            className="btn btn-secondary btn-train"
+            onClick={handleSignUp}
+            disabled={pending !== null}
+          >
+            <span className="btn-train-label">Sign up</span>
+            {pending === "up" && <ButtonTrain />}
           </button>
-          <button type="submit" className="btn btn-primary">
-            Sign in
+          <button type="submit" className="btn btn-primary btn-train" disabled={pending !== null}>
+            <span className="btn-train-label">Sign in</span>
+            {pending === "in" && <ButtonTrain />}
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+// A mini train crossing a button while its request is in flight.
+function ButtonTrain() {
+  return (
+    <span className="btn-train-run" aria-hidden="true">
+      <PixelTrain scale={0.55} />
+    </span>
+  );
+}
+
+// Loading and error states that fill the page (before the profile has loaded).
+function PageState({ variant, children }) {
+  return (
+    <div className="page-state card">
+      <PixelScene variant={variant} />
+      <Perf />
+      {children}
     </div>
   );
 }
@@ -104,10 +161,28 @@ function App() {
 
   // Decide what to render for routes that need auth
   function AuthContent() {
-    if (authUser === undefined) return <p className="muted center">Loading…</p>;
+    if (authUser === undefined) {
+      return (
+        <PageState variant="loading">
+          <p className="muted">Loading…</p>
+        </PageState>
+      );
+    }
     if (!authUser) return <SignInForm />;
-    if (error) return <p className="error center" role="alert">Couldn't load your profile: {error}</p>;
-    if (profile === undefined) return <p className="muted center">Loading your profile…</p>;
+    if (error) {
+      return (
+        <PageState variant="blocked">
+          <p className="error" role="alert">Couldn't load your profile: {error}</p>
+        </PageState>
+      );
+    }
+    if (profile === undefined) {
+      return (
+        <PageState variant="loading">
+          <p className="muted">Loading your profile…</p>
+        </PageState>
+      );
+    }
     return null; // auth is fine — let the Route element render
   }
 
@@ -115,6 +190,7 @@ function App() {
 
   return (
     <div className="app">
+      <MapBackground />
       <header className="topbar">
         <div className="topbar-inner">
           <span className="brand">Task<span className="brand-mark">4</span>Impact</span>

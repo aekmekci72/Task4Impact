@@ -1,4 +1,5 @@
 import { seniorityLabel, tagLabel } from "../tags.js";
+import Perf from "./pixel/Perf.jsx";
 
 function initials(name) {
   return name
@@ -44,6 +45,7 @@ export default function MemberCard({ member, isMe, isPm }) {
           {member.seniority && <span className="muted">{seniorityLabel(member.seniority)}</span>}
         </div>
       </header>
+      <Perf />
       <TagList tags={member.strengths} variant="chip-strength" />
     </article>
   );

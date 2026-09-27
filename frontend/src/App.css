@@ -999,3 +999,529 @@ select {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ══ Pixel railroad theme ═══════════════════════════════════════════════════
+   Everything below layers the train theme over the styles above: a fixed pixel
+   map behind the app, ticket-style panels (square corners, printed inner frame,
+   dotted tear lines with notches), and small animated pixel trains. */
+
+/* Map background and layering */
+.map-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.map-bg svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.topbar {
+  position: relative;
+  z-index: 2;
+}
+/* The content column gets a soft mint veil so text stays readable over the map. */
+.app-main {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  min-height: calc(100vh - 71px);
+  background: rgba(232, 243, 239, 0.88);
+}
+/* With room beside the column, fade the veil's edges into the map. */
+@media (min-width: 1200px) {
+  .app-main {
+    background: linear-gradient(
+      90deg,
+      rgba(232, 243, 239, 0) 0,
+      rgba(232, 243, 239, 0.88) 40px,
+      rgba(232, 243, 239, 0.88) calc(100% - 40px),
+      rgba(232, 243, 239, 0) 100%
+    );
+  }
+}
+
+/* Ticket panels */
+.card,
+.panel,
+.ticket {
+  --pad: 24px;
+  background: var(--surface);
+  border: 1px solid #d6dce3;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 5px var(--surface), inset 0 0 0 6px var(--border), var(--shadow);
+}
+.ticket {
+  padding: 22px 24px;
+}
+.card-compact {
+  --pad: 16px;
+}
+.panel {
+  --pad: 36px;
+}
+.card-me {
+  border: 2px solid var(--accent);
+}
+.profile-form.panel {
+  border-top: 4px solid var(--interest);
+}
+
+/* Dotted tear line with half-circle notches at both edges */
+.perf {
+  position: relative;
+  height: 0;
+  margin: 0 calc(-1 * var(--pad, 24px));
+  border-top: 3px dotted #b9c4cf;
+}
+.perf::before,
+.perf::after {
+  content: "";
+  position: absolute;
+  top: -12px;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--ground);
+  border: 1px solid #d6dce3;
+}
+.perf::before {
+  left: -12px;
+  clip-path: inset(0 0 0 50%);
+}
+.perf::after {
+  right: -12px;
+  clip-path: inset(0 50% 0 0);
+}
+
+/* Panels that became tickets */
+.directory-head.ticket {
+  padding: 20px 24px;
+}
+.project-index.ticket {
+  --pad: 20px;
+  padding: 20px;
+  border: 1px solid #d6dce3;
+}
+.project-index.ticket .project-select:last-child {
+  border-bottom: 0;
+}
+.project-summary.ticket,
+.project-team.ticket {
+  --pad: 28px;
+  padding: 24px 28px;
+  border: 1px solid #d6dce3;
+}
+.project-form.ticket {
+  --pad: 32px;
+  padding: 28px 32px;
+}
+.projects-empty.ticket {
+  padding: 24px;
+}
+.projects-empty .px-scene {
+  justify-self: stretch;
+}
+.project-team .project-member-row {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid #d6dce3;
+  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--border);
+}
+.graph-col.ticket {
+  --pad: 20px;
+  min-width: 0;
+  padding: 20px;
+}
+.graph-generating {
+  margin-bottom: 1.5rem;
+}
+.page-state {
+  max-width: 420px;
+  margin: 48px auto;
+  text-align: center;
+}
+.directory-empty {
+  max-width: 420px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* Sign-in: square hero with a route list and a pixel station at the bottom */
+.auth-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0;
+  padding-bottom: 210px;
+}
+.auth-points {
+  position: relative;
+  gap: 16px;
+  padding-left: 34px;
+  line-height: 24px;
+}
+.auth-points li {
+  position: relative;
+}
+.auth-points li::before {
+  position: absolute;
+  left: -34px;
+  top: 5px;
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  border: 3px solid #fff;
+  background: #80ded9;
+}
+.auth-points li:last-child::before {
+  border-color: #80ded9;
+  background: #2958a3;
+}
+/* Track between stops: solid where the ride has been, dotted ahead */
+.auth-points li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: -29px;
+  top: 12px;
+  height: calc(100% + 16px);
+  border-left: 4px solid #80ded9;
+}
+.auth-points li:nth-last-child(2)::after {
+  border-left-style: dotted;
+}
+/* A tiny top-down train car riding down the route */
+.auth-points::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 3px;
+  width: 10px;
+  height: 18px;
+  box-sizing: border-box;
+  border-radius: 3px;
+  background: linear-gradient(#fff 0 3px, #129ea5 3px 7px, #fff 7px);
+  border: 2px solid #14202e;
+  animation: px-ride 5s steps(20) infinite;
+}
+.station-scene {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 560px;
+  height: 180px;
+  margin-left: -280px;
+}
+.station-scene > svg {
+  display: block;
+  width: 560px;
+  height: 180px;
+}
+.station-train {
+  position: absolute;
+  left: 196px;
+  bottom: 21px;
+}
+.station-train-departing {
+  animation: px-depart 2.4s ease-in forwards;
+}
+.station-train-arriving {
+  animation: px-arrive 2.2s ease-out forwards;
+}
+
+/* Sign-in ticket: punched hole after the first attempt */
+.auth-form {
+  position: relative;
+}
+.ticket-stamp {
+  position: absolute;
+  top: 20px;
+  right: 22px;
+  width: 40px;
+  height: 40px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 3px dashed var(--accent);
+  background: radial-gradient(circle, var(--ground) 0 8px, transparent 9px);
+  animation: px-stamp 0.35s steps(4) forwards;
+}
+
+/* Buttons that run a mini train while their request is in flight */
+.btn-train {
+  position: relative;
+  overflow: hidden;
+}
+.btn-train:has(.btn-train-run) {
+  opacity: 1;
+}
+.btn-train:has(.btn-train-run) .btn-train-label {
+  opacity: 0.35;
+}
+.btn-train-run {
+  position: absolute;
+  left: 8px;
+  bottom: 3px;
+  animation: px-cross 1.6s linear infinite;
+}
+
+/* Track: wooden sleepers and a rail */
+.px-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14px;
+}
+.px-track-ties {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 12px;
+  background: repeating-linear-gradient(90deg, #cdbfa9 0 8px, transparent 8px 22px);
+}
+.px-track-rail {
+  position: absolute;
+  inset: auto 0 9px 0;
+  height: 4px;
+  background: #4f5b69;
+}
+.px-track-scroll .px-track-ties {
+  animation: px-ties 0.5s linear infinite;
+}
+
+/* Home banner: a village and a train on its track */
+.home-banner {
+  position: relative;
+  height: 120px;
+  overflow: hidden;
+}
+.home-banner-village {
+  position: absolute;
+  left: 0;
+  bottom: 14px;
+  width: 300px;
+  height: 90px;
+}
+.home-banner-train {
+  position: absolute;
+  right: 40px;
+  bottom: 11px;
+}
+
+/* Scenes for loading, empty and error states */
+.px-scene {
+  position: relative;
+  height: 130px;
+  overflow: hidden;
+  background: #f3f8f6;
+}
+.px-scene-art {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 330px;
+  height: 130px;
+  margin-left: -165px;
+}
+.px-scene-train {
+  position: absolute;
+  left: 50%;
+  bottom: 11px;
+  transform: translateX(-50%);
+}
+.px-scene-train-left {
+  left: 24px;
+  transform: none;
+}
+
+/* Graph: a street-grid map with ticket nodes and trains on in-progress tasks */
+.graph-map {
+  background-color: #fbfcfd;
+  background-image:
+    linear-gradient(#edf1f5 2px, transparent 2px),
+    linear-gradient(90deg, #edf1f5 2px, transparent 2px);
+  background-size: 96px 96px;
+}
+.graph-node {
+  --pad: 14px;
+  display: grid;
+  gap: 6px;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #d6dce3;
+  box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 4px var(--border);
+  transition: opacity 120ms ease;
+}
+.graph-node-done {
+  background: #eefafa;
+  border-color: #80ded9;
+  box-shadow: inset 0 0 0 3px #eefafa, inset 0 0 0 4px #b7e6e2;
+}
+.graph-node-active {
+  border: 2px solid var(--accent);
+}
+.graph-node-waiting {
+  border-style: dashed;
+  border-color: #b9c4cf;
+}
+.graph-node .perf {
+  border-top-width: 2px;
+}
+.graph-node .perf::before,
+.graph-node .perf::after {
+  top: -8px;
+  width: 14px;
+  height: 14px;
+  background: #fbfcfd;
+}
+.graph-node .perf::before {
+  left: -8px;
+}
+.graph-node .perf::after {
+  right: -8px;
+}
+.graph-node-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.graph-node-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.graph-node-title {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text-h);
+}
+.graph-node-desc {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.graph-node-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.graph-node-skill {
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.graph-node-train {
+  position: absolute;
+  width: 128px;
+  height: 56px;
+  pointer-events: none;
+}
+.graph-node-train svg {
+  position: absolute;
+  right: 24px;
+  bottom: 3px;
+}
+.graph-node-train::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 5px;
+  background:
+    linear-gradient(#4f5b69, #4f5b69) top / 100% 2px no-repeat,
+    repeating-linear-gradient(90deg, #cdbfa9 0 5px, transparent 5px 13px);
+}
+
+/* Pixel animations */
+.px-spin-a {
+  animation: px-frame-a 0.4s linear infinite;
+}
+.px-spin-b {
+  animation: px-frame-b 0.4s linear infinite;
+}
+.px-rod {
+  animation: px-rod 0.4s linear infinite;
+}
+.px-puff {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: px-puff 1.8s steps(9) infinite;
+}
+.px-idle .px-spin-a,
+.px-idle .px-spin-b,
+.px-idle .px-rod {
+  animation-play-state: paused;
+}
+@keyframes px-frame-a {
+  0%, 49.9% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes px-frame-b {
+  0%, 49.9% { opacity: 0; }
+  50%, 100% { opacity: 1; }
+}
+@keyframes px-rod {
+  0%, 49.9% { transform: translateY(0); }
+  50%, 100% { transform: translateY(2px); }
+}
+@keyframes px-puff {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  12% { opacity: 0.95; }
+  100% { opacity: 0; transform: translate(18px, -22px) scale(1.6); }
+}
+@keyframes px-ties {
+  from { background-position: 0 0; }
+  to { background-position: -22px 0; }
+}
+@keyframes px-ride {
+  from { top: 3px; }
+  to { top: calc(100% - 21px); }
+}
+@keyframes px-depart {
+  from { transform: translateX(0); }
+  to { transform: translateX(640px); }
+}
+@keyframes px-arrive {
+  from { transform: translateX(-640px); }
+  to { transform: translateX(0); }
+}
+@keyframes px-cross {
+  from { left: -40px; }
+  to { left: 100%; }
+}
+@keyframes px-stamp {
+  from { opacity: 0; transform: rotate(-12deg) scale(1.8); }
+  to { opacity: 1; transform: rotate(-12deg) scale(1); }
+}
+
+@media (max-width: 600px) {
+  .panel {
+    --pad: 22px;
+  }
+}
+
+/* Motion off for people who ask their system for less of it */
+@media (prefers-reduced-motion: reduce) {
+  .px-spin-a,
+  .px-spin-b,
+  .px-rod,
+  .px-puff,
+  .px-track-scroll .px-track-ties,
+  .station-train-departing,
+  .station-train-arriving,
+  .btn-train-run,
+  .auth-points::after,
+  .ticket-stamp {
+    animation: none;
+  }
+  .px-spin-b,
+  .px-puff {
+    opacity: 0;
+  }
+}

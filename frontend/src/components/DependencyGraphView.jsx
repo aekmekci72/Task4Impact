@@ -1,4 +1,7 @@
 import { useMemo, useRef, useState, useLayoutEffect } from "react";
+import { tagLabel } from "../tags.js";
+import Perf from "./pixel/Perf.jsx";
+import PixelTrain from "./pixel/PixelTrain.jsx";
 
 /**
  * Renders a task graph's `tasks` array (each with an `id` and `dependencies`
@@ -13,8 +16,10 @@ import { useMemo, useRef, useState, useLayoutEffect } from "react";
 const NODE_WIDTH = 200;
 const NODE_MIN_HEIGHT = 88;
 const COLUMN_GAP = 96;
-const ROW_GAP = 28;
+// Rows and the top edge leave room for the little train that sits on in-progress tasks.
+const ROW_GAP = 60;
 const PADDING = 32;
+const PADDING_TOP = 64;
 
 const DIFFICULTY_COLOR = {
   easy: "#3f9d5c",
@@ -79,7 +84,7 @@ export default function DependencyGraphView({ tasks }) {
   const positions = useMemo(() => {
     const pos = {};
     Object.entries(columns).forEach(([col, colTasks]) => {
-      let y = PADDING;
+      let y = PADDING_TOP;
       colTasks.forEach((task) => {
         const h = heights[task.id] ?? NODE_MIN_HEIGHT;
         pos[task.id] = {
@@ -99,7 +104,7 @@ export default function DependencyGraphView({ tasks }) {
     (Object.keys(columns).length || 1) * NODE_WIDTH +
     (Math.max(0, Object.keys(columns).length - 1)) * COLUMN_GAP;
   const height =
-    PADDING * 2 +
+    PADDING_TOP + PADDING +
     Math.max(
       0,
       ...Object.values(columns).map((colTasks) =>
@@ -136,54 +141,61 @@ export default function DependencyGraphView({ tasks }) {
     return false;
   }
 
+  const statusOf = Object.fromEntries(tasks.map((t) => [t.id, t.status]));
+
+  // Map-route style edges: a white road casing under a solid line once the prerequisite is
+  // done, or a dotted line while it isn't. Corners are rounded right angles, like streets.
+  function routePath(from, to) {
+    const startX = from.x + from.width;
+    const startY = from.y + from.height / 2;
+    const endX = to.x;
+    const endY = to.y + to.height / 2;
+    const midX = (startX + endX) / 2;
+    const dy = endY - startY;
+    if (Math.abs(dy) < 1) return { d: `M ${startX} ${startY} H ${endX}`, startX, startY, endX, endY };
+    const dir = Math.sign(dy);
+    const r = Math.min(12, Math.abs(dy) / 2, (endX - startX) / 4);
+    const d =
+      `M ${startX} ${startY} H ${midX - r} Q ${midX} ${startY} ${midX} ${startY + dir * r} ` +
+      `V ${endY - dir * r} Q ${midX} ${endY} ${midX + r} ${endY} H ${endX}`;
+    return { d, startX, startY, endX, endY };
+  }
+
   return (
     <div style={{ overflowX: "auto", overflowY: "hidden", paddingBottom: 8 }}>
-      <div style={{ position: "relative", width, height, minWidth: "100%" }}>
+      <div className="graph-map" style={{ position: "relative", width, height, minWidth: "100%" }}>
         <svg
           width={width}
           height={height}
           style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none" }}
+          aria-hidden="true"
         >
-          <defs>
-            <marker
-              id="dep-arrow"
-              markerWidth="8"
-              markerHeight="8"
-              refX="7"
-              refY="4"
-              orient="auto"
-            >
-              <path d="M0,0 L8,4 L0,8 Z" fill="#b5b5b5" />
-            </marker>
-            <marker
-              id="dep-arrow-active"
-              markerWidth="8"
-              markerHeight="8"
-              refX="7"
-              refY="4"
-              orient="auto"
-            >
-              <path d="M0,0 L8,4 L0,8 Z" fill="#1c1c1c" />
-            </marker>
-          </defs>
+          <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+            {edges.map((edge, i) => (
+              <path key={`casing-${i}`} d={routePath(positions[edge.from], positions[edge.to]).d} stroke="#ffffff" strokeWidth={11} />
+            ))}
+            {edges.map((edge, i) => {
+              const done = statusOf[edge.from] === "done";
+              const active = isEdgeActive(edge);
+              return (
+                <path
+                  key={i}
+                  d={routePath(positions[edge.from], positions[edge.to]).d}
+                  stroke={active ? "#2958a3" : done ? "#129ea5" : "#6d9dc5"}
+                  strokeWidth={active ? 6 : 5}
+                  strokeDasharray={done ? undefined : "0.1 11"}
+                />
+              );
+            })}
+          </g>
           {edges.map((edge, i) => {
-            const from = positions[edge.from];
-            const to = positions[edge.to];
-            const startX = from.x + from.width;
-            const startY = from.y + from.height / 2;
-            const endX = to.x;
-            const endY = to.y + to.height / 2;
-            const midX = (startX + endX) / 2;
-            const active = isEdgeActive(edge);
+            const { startX, startY, endX, endY } = routePath(positions[edge.from], positions[edge.to]);
+            const color = statusOf[edge.from] === "done" ? "#129ea5" : "#6d9dc5";
             return (
-              <path
-                key={i}
-                d={`M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`}
-                fill="none"
-                stroke={active ? "#1c1c1c" : "#d5d5d5"}
-                strokeWidth={active ? 2 : 1.5}
-                markerEnd={active ? "url(#dep-arrow-active)" : "url(#dep-arrow)"}
-              />
+              <g key={`pins-${i}`}>
+                <circle cx={startX} cy={startY} r={4.5} fill="#ffffff" stroke={color} strokeWidth={3} />
+                <circle cx={endX} cy={endY} r={4.5} fill="#ffffff" stroke={color} strokeWidth={3} />
+              </g>
             );
           })}
         </svg>
@@ -191,78 +203,56 @@ export default function DependencyGraphView({ tasks }) {
         {tasks.map((task) => {
           const p = positions[task.id];
           if (!p) return null;
+          const inProgress = task.status === "todo" && task.assignee_ids?.length > 0;
+          if (!inProgress) return null;
+          // A small train on a strip of track along the top of an in-progress task.
+          return (
+            <div
+              key={`train-${task.id}`}
+              className="graph-node-train"
+              style={{ left: p.x + p.width - 128, top: p.y - 56 }}
+              aria-hidden="true"
+            >
+              <PixelTrain scale={0.95} />
+            </div>
+          );
+        })}
+
+        {tasks.map((task) => {
+          const p = positions[task.id];
+          if (!p) return null;
           const active = isNodeActive(task.id);
+          const status = task.status === "done" ? "done" : task.assignee_ids?.length ? "active" : "waiting";
           return (
             <div
               key={task.id}
               ref={(el) => (nodeRefs.current[task.id] = el)}
               onMouseEnter={() => setHovered(task.id)}
               onMouseLeave={() => setHovered(null)}
+              className={`graph-node graph-node-${task.status ? status : "draft"}`}
               style={{
                 position: "absolute",
                 left: p.x,
                 top: p.y,
                 width: p.width,
-                boxSizing: "border-box",
-                border: `1px solid ${active ? "#1c1c1c" : "#e3e3e3"}`,
-                borderRadius: 6,
-                padding: "0.7rem 0.8rem",
-                background: "#fff",
                 opacity: active ? 1 : 0.4,
-                transition: "opacity 120ms ease, border-color 120ms ease",
-                fontFamily: "'Inter', system-ui, sans-serif",
-                boxShadow: active
-                  ? "0 2px 6px rgba(0,0,0,0.08)"
-                  : "none",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginBottom: 4,
-                }}
-              >
+              <div className="graph-node-head">
                 <span
                   aria-hidden
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background:
-                      DIFFICULTY_COLOR[task.estimated_difficulty] || "#999",
-                    flexShrink: 0,
-                  }}
+                  className="graph-node-dot"
+                  style={{ background: DIFFICULTY_COLOR[task.estimated_difficulty] || "#999" }}
                 />
-                <span style={{ fontWeight: 600, fontSize: "0.88rem" }}>
-                  {task.title}
-                </span>
+                <span className="graph-node-title">{task.title}</span>
               </div>
-              <div style={{ fontSize: "0.78rem", color: "#666", lineHeight: 1.4 }}>
-                {task.description}
-              </div>
+              <Perf />
+              <div className="graph-node-desc">{task.description}</div>
               {task.suggested_skills?.length > 0 && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 4,
-                    marginTop: 6,
-                  }}
-                >
+                <div className="graph-node-skills">
                   {task.suggested_skills.map((skill) => (
-                    <span
-                      key={skill}
-                      style={{
-                        fontSize: "0.68rem",
-                        background: "#f1f1f1",
-                        color: "#555",
-                        borderRadius: 4,
-                        padding: "0.1rem 0.4rem",
-                      }}
-                    >
-                      {skill}
+                    <span key={skill} className="graph-node-skill">
+                      {tagLabel(skill)}
                     </span>
                   ))}
                 </div>

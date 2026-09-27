@@ -2,6 +2,7 @@ import { useState } from "react";
 import { saveMe } from "../api.js";
 import TagPicker from "./TagPicker.jsx";
 import { SENIORITY_LEVELS, seniorityLabel } from "../tags.js";
+import Perf from "./pixel/Perf.jsx";
 
 // Used for both first-time profile creation (R2) and editing your own profile (R3).
 export default function ProfileForm({ initial, defaultName, onSaved, onCancel }) {
@@ -44,6 +45,7 @@ export default function ProfileForm({ initial, defaultName, onSaved, onCancel })
             : "Changes show up in the directory right away."}
         </p>
       </header>
+      <Perf />
 
       <label className="field">
         <span className="label">Name</span>
@@ -87,6 +89,7 @@ export default function ProfileForm({ initial, defaultName, onSaved, onCancel })
         error && <p className="error" role="alert">{error}</p>
       )}
 
+      <Perf />
       <div className="actions">
         {onCancel && (
           <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={saving}>

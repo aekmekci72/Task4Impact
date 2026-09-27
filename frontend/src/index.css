@@ -4,6 +4,8 @@
   --text-h: #14202e;
   --muted: #636e7b;
   --bg: #faf9f6;
+  /* Mint ground of the pixel railroad map behind every page */
+  --ground: #e8f3ef;
   --surface: #fff;
   --border: #e1e5ea;
   --input-border: #cfd6de;
@@ -30,7 +32,7 @@
   font: 16px/1.5 var(--sans);
   color-scheme: light;
   color: var(--text);
-  background: var(--bg);
+  background: var(--ground);
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

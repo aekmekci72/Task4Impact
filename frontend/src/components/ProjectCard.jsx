@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { completeTask } from "../api.js";
 import { tagLabel } from "../tags.js";
+import Perf from "./pixel/Perf.jsx";
 
 function TaskRow({ task, onComplete, completing }) {
   const done = task.status === "done";
@@ -65,6 +66,7 @@ export default function ProjectCard({ project, meId, onChange }) {
         <h3>{project.name}</h3>
         <span className="muted">You're a {myRole}</span>
       </header>
+      <Perf />
 
       <div>
         <div

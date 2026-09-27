@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { SKILL_TAGS, tagLabel } from "../tags.js";
 import MemberCard from "./MemberCard.jsx";
+import Perf from "./pixel/Perf.jsx";
+import PixelScene from "./pixel/PixelScene.jsx";
 
 export default function Directory({ members, meId, pmId, projectName }) {
   const [query, setQuery] = useState("");
@@ -17,7 +19,7 @@ export default function Directory({ members, meId, pmId, projectName }) {
 
   return (
     <section>
-      <div className="directory-head">
+      <div className="directory-head ticket">
         <div>
           <h2>Your team</h2>
           <p className="muted">
@@ -44,7 +46,11 @@ export default function Directory({ members, meId, pmId, projectName }) {
       </div>
 
       {visible.length === 0 ? (
-        <p className="muted empty">No members match those filters.</p>
+        <div className="card directory-empty">
+          <PixelScene variant="platform" />
+          <Perf />
+          <p className="muted">No members match those filters.</p>
+        </div>
       ) : (
         <div className="grid">
           {visible.map((m) => (
