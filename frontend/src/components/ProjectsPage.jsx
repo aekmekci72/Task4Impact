@@ -289,7 +289,7 @@ export default function ProjectsPage() {
                     <p className="project-kicker">Project</p>
                     <h2>{selectedProject.name}</h2>
                   </div>
-                  <button className="btn btn-ghost" type="button" onClick={startEdit}>
+                  <button className="btn btn-secondary" type="button" onClick={startEdit}>
                     Edit details
                   </button>
                 </div>

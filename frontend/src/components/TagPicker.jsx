@@ -1,6 +1,7 @@
 import { SKILL_TAGS, tagLabel } from "../tags.js";
 
-export default function TagPicker({ label, hint, value, onChange }) {
+// variant="interest" colors selected tags teal instead of blue.
+export default function TagPicker({ label, hint, value, onChange, variant }) {
   const toggle = (tag) =>
     onChange(value.includes(tag) ? value.filter((t) => t !== tag) : [...value, tag]);
 
@@ -8,7 +9,7 @@ export default function TagPicker({ label, hint, value, onChange }) {
     <fieldset className="field">
       <legend>{label}</legend>
       {hint && <p className="hint">{hint}</p>}
-      <div className="tag-picker">
+      <div className={`tag-picker${variant ? ` tag-picker-${variant}` : ""}`}>
         {SKILL_TAGS.map((tag) => (
           <button
             type="button"

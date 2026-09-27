@@ -31,62 +31,98 @@ const DUMMY_USER_NAMES = {
   u4: "Anna",
 };
 
-const DIFFICULTY_CLASS = {
-  easy: "diff-easy",
-  medium: "diff-medium",
-  hard: "diff-hard",
+const styles = {
+  page: {
+    fontFamily: "'Inter', system-ui, sans-serif",
+    maxWidth: 760,
+    margin: "0 auto",
+    padding: "2.5rem 1.5rem",
+    color: "#1c1c1c",
+  },
+  heading: {
+    fontSize: "1.5rem",
+    fontWeight: 600,
+    marginBottom: "0.25rem",
+  },
+  subheading: {
+    color: "#666",
+    marginBottom: "1.75rem",
+    fontSize: "0.95rem",
+  },
+  buttonRow: {
+    display: "flex",
+    gap: "0.75rem",
+    marginBottom: "2rem",
+  },
+  button: {
+    padding: "0.6rem 1.1rem",
+    borderRadius: 6,
+    border: "1px solid #1c1c1c",
+    background: "#1c1c1c",
+    color: "#fff",
+    fontSize: "0.9rem",
+    cursor: "pointer",
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+    cursor: "not-allowed",
+  },
+  error: {
+    background: "#fdecea",
+    color: "#8a1f11",
+    padding: "0.75rem 1rem",
+    borderRadius: 6,
+    marginBottom: "1.5rem",
+    fontSize: "0.9rem",
+  },
+  section: {
+    marginBottom: "2rem",
+  },
+  sectionTitle: {
+    fontSize: "1.05rem",
+    fontWeight: 600,
+    marginBottom: "0.75rem",
+  },
+  card: {
+    border: "1px solid #e3e3e3",
+    borderRadius: 8,
+    padding: "0.9rem 1rem",
+    marginBottom: "0.6rem",
+  },
+  taskTitle: {
+    fontWeight: 600,
+    marginBottom: "0.2rem",
+  },
+  taskDesc: {
+    fontSize: "0.88rem",
+    color: "#555",
+    marginBottom: "0.5rem",
+  },
+  metaRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "0.4rem",
+    fontSize: "0.78rem",
+  },
+  tag: {
+    background: "#f1f1f1",
+    borderRadius: 4,
+    padding: "0.15rem 0.5rem",
+    color: "#444",
+  },
+  assignmentRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    padding: "0.6rem 0",
+    borderBottom: "1px solid #eee",
+    fontSize: "0.92rem",
+  },
+  empty: {
+    color: "#888",
+    fontSize: "0.9rem",
+    fontStyle: "italic",
+  },
 };
-
-function DifficultyBadge({ level }) {
-  return (
-    <span className={`graph-badge graph-badge-diff ${DIFFICULTY_CLASS[level] ?? ""}`}>
-      {level}
-    </span>
-  );
-}
-
-function SkillBadge({ skill }) {
-  return <span className="graph-badge graph-badge-skill">{skill}</span>;
-}
-
-function TaskCard({ task }) {
-  return (
-    <article className="card card-compact graph-task-card">
-      <div className="graph-task-header">
-        <span className="graph-task-title">{task.title}</span>
-        <DifficultyBadge level={task.estimated_difficulty} />
-      </div>
-      <p className="graph-task-desc">{task.description}</p>
-      <div className="graph-task-meta">
-        {task.suggested_skills?.map((s) => (
-          <SkillBadge key={s} skill={s} />
-        ))}
-        {task.dependencies?.length > 0 && (
-          <span className="graph-badge graph-badge-dep">
-            after: {task.dependencies.join(", ")}
-          </span>
-        )}
-        {task.capacity && task.capacity > 1 && (
-          <span className="graph-badge graph-badge-cap">×{task.capacity} people</span>
-        )}
-      </div>
-    </article>
-  );
-}
-
-function AssignmentRow({ userId, taskId, taskLabel }) {
-  const name = DUMMY_USER_NAMES[userId] || userId;
-  return (
-    <div className="graph-assignment-row">
-      <div className="graph-assignment-user">
-        <span className="graph-avatar">{name[0]}</span>
-        <span className="graph-assignment-name">{name}</span>
-      </div>
-      <div className="graph-assignment-arrow">→</div>
-      <div className="graph-assignment-task">{taskLabel}</div>
-    </div>
-  );
-}
 
 export default function GraphPage() {
   const [graph, setGraph] = useState(null);

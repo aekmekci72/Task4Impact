@@ -26,34 +26,45 @@ function SignInForm() {
   };
 
   return (
-    <form className="panel profile-form" onSubmit={handleSignIn}>
-      <header>
-        <h2>Sign in</h2>
-        <p className="hint">Use your email and password, or sign up if you're new.</p>
-      </header>
-      <label className="field">
-        <span className="label">Email</span>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-      </label>
-      <label className="field">
-        <span className="label">Password</span>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-        />
-      </label>
-      {error && <p className="error" role="alert">{error}</p>}
-      <div className="actions">
-        <button type="button" className="btn btn-ghost" onClick={handleSignUp}>
-          Sign up
-        </button>
-        <button type="submit" className="btn btn-primary">
-          Sign in
-        </button>
-      </div>
-    </form>
+    <div className="auth">
+      <aside className="auth-hero">
+        <h1>Start a project. We'll break it into tasks.</h1>
+        <p>Describe what you're building, get a task graph, and let ready tasks find the right people.</p>
+        <ul className="auth-points">
+          <li>Profiles with strengths and interests</li>
+          <li>Task graphs generated from a description</li>
+          <li>Tasks auto-assigned as work unlocks</li>
+        </ul>
+      </aside>
+      <form className="panel auth-form profile-form" onSubmit={handleSignIn}>
+        <header>
+          <h2>Sign in</h2>
+          <p className="hint">Use your email and password, or sign up if you're new.</p>
+        </header>
+        <label className="field">
+          <span className="label">Email</span>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+        </label>
+        <label className="field">
+          <span className="label">Password</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+          />
+        </label>
+        {error && <p className="error" role="alert">{error}</p>}
+        <div className="actions">
+          <button type="button" className="btn btn-secondary" onClick={handleSignUp}>
+            Sign up
+          </button>
+          <button type="submit" className="btn btn-primary">
+            Sign in
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -105,52 +116,54 @@ function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <span className="brand">Hack4Impact</span>
+        <div className="topbar-inner">
+          <span className="brand">Task<span className="brand-mark">4</span>Impact</span>
 
-        {/* Nav links — only shown when signed in and profile exists */}
-        {authUser && profile && (
-          <nav className="topbar-actions">
-            <Link
-              to="/"
-              className={`btn btn-ghost${location.pathname === "/" ? " btn-active" : ""}`}
-            >
-              Home
-            </Link>
-            <Link
-              to="/graphpage"
-              className={`btn btn-ghost${location.pathname === "/graphpage" ? " btn-active" : ""}`}
-            >
-              Graph
-            </Link>
-            <Link
-              to="/projects"
-              className={`btn btn-ghost${location.pathname === "/projects" ? " btn-active" : ""}`}
-            >
-              Projects
-            </Link>
-            <Link
-              to="/edit-profile"
-              className={`btn btn-ghost${location.pathname === "/edit-profile" ? " btn-active" : ""}`}
-            >
-              Edit profile
-            </Link>
-            <button className="btn btn-ghost" onClick={() => signOut()}>
-              Sign out
-            </button>
-          </nav>
-        )}
+          {/* Nav links — only shown when signed in and profile exists */}
+          {authUser && profile && (
+            <nav className="topbar-actions">
+              <Link
+                to="/"
+                className={`btn btn-ghost${location.pathname === "/" ? " btn-active" : ""}`}
+              >
+                Home
+              </Link>
+              <Link
+                to="/graphpage"
+                className={`btn btn-ghost${location.pathname === "/graphpage" ? " btn-active" : ""}`}
+              >
+                Graph
+              </Link>
+              <Link
+                to="/projects"
+                className={`btn btn-ghost${location.pathname === "/projects" ? " btn-active" : ""}`}
+              >
+                Projects
+              </Link>
+              <Link
+                to="/edit-profile"
+                className={`btn btn-ghost${location.pathname === "/edit-profile" ? " btn-active" : ""}`}
+              >
+                Edit profile
+              </Link>
+              <button className="btn btn-ghost" onClick={() => signOut()}>
+                Sign out
+              </button>
+            </nav>
+          )}
 
-        {/* Signed in but no profile yet — still show sign-out */}
-        {authUser && !profile && (
-          <nav className="topbar-actions">
-            <button className="btn btn-ghost" onClick={() => signOut()}>
-              Sign out
-            </button>
-          </nav>
-        )}
+          {/* Signed in but no profile yet — still show sign-out */}
+          {authUser && !profile && (
+            <nav className="topbar-actions">
+              <button className="btn btn-ghost" onClick={() => signOut()}>
+                Sign out
+              </button>
+            </nav>
+          )}
+        </div>
       </header>
 
-      <main>
+      <main className="app-main">
         <Routes>
           <Route
             path="/"
