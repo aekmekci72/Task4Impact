@@ -201,7 +201,7 @@ export default function GraphPage() {
               No tasks yet. Hit &ldquo;Generate graph&rdquo; to draft them from the description.
             </p>
           ) : (
-            graph.tasks.map((task) => <TaskCard key={task.id} task={task} />)
+            <DependencyGraphView tasks={tasks} />
           )}
         </section>
 
