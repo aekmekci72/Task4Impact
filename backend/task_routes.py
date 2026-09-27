@@ -27,8 +27,8 @@ def generate(project_id):
     team = [{k: m[k] for k in ("strengths", "interests", "seniority")} for m in project["members"]]
     try:
         return jsonify(generate_dependency_graph(project["description"], dev_profiles=team))
-    except RuntimeError as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception as e:  # missing key, LLM errors after retries, or no valid graph after retries
+        return jsonify({"error": f"Couldn't generate tasks: {e}"}), 502
 
 
 @bp.put("/projects/<project_id>/tasks")
